@@ -44,6 +44,9 @@ EXPECTED = {
     "/api/aether/restart": {"POST"},
     "/api/aether/install": {"POST"},
     "/api/aether/settings": {"POST"},
+    "/api/aether/sweep": {"GET"},
+    "/api/aether/sweep/start": {"POST"},
+    "/api/aether/sweep/cancel": {"POST"},
     # health monitoring (public)
     "/health": {"GET", "HEAD"},
     "/api/health": {"GET", "HEAD"},

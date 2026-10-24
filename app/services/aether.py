@@ -13,14 +13,17 @@ What it does
   connected / reconnecting / error), gateway and exit info.
 * Watchdog: periodic health probe through the SOCKS5 port, exponential
   backoff restarts, fallback to the last known-good preset.
+* Best-config sweep: runs every selected protocol x scan-mode combination on this
+  server, measures real HTTPS latency through each tunnel and ranks them; the winner
+  can be saved (as the saved options and as last known-good) and connected.
 * Installer (API only, no UI tab): downloads the pinned release, verifies its sha256.
 * Tells app/services/upstream.py when the tunnel is usable, so panel users'
   traffic can leave through Aether instead of the host's own IP.
 
 Not ported: ASiRi's own SOCKS/HTTP/SS gateway and Trojan inbound, Railway TCP
 relay. HTTP/3 transport and the HTTP proxy (port+1) listener were removed; the
-panel's "Endpoint Finder" tab (app/services/endpoint_finder.py) replaces the
-old Install tab.
+panel's "Best Config" tab (the sweep below) replaces the old Install tab. The
+legacy /api/endpoints/* API (app/services/endpoint_finder.py) is untouched.
 """
 from __future__ import annotations
 
@@ -138,7 +141,7 @@ class _State:
         self.last_error: Optional[str] = None
         self.stop_requested = False
         self.wanted = False          # the operator wants the tunnel up; watchdog keeps it alive
-        self.maintenance = False     # reserved for a future best-config sweep
+        self.maintenance = False     # True while a best-config sweep owns the tunnel (watchdog + Start/Restart stand down)
         self.auto_start = False
         self.cfg: dict[str, Any] = {"options": None, "last_good": None}
         self.tasks: set = set()
@@ -359,7 +362,17 @@ async def _save_cfg(**patch: Any) -> None:
 # Start / stop
 # ---------------------------------------------------------------------------
 
+_BUSY_MSG = "A best-config test is running. Cancel it (or press Stop) first."
+
+
 async def start(options: Optional[dict] = None, persist: bool = True) -> None:
+    if S.maintenance:
+        raise AetherError(_BUSY_MSG)
+    await _start_impl(options, persist)
+
+
+async def _start_impl(options: Optional[dict] = None, persist: bool = True) -> None:
+    """Spawn Aether. Internal callers (watchdog, sweep) use this directly."""
     if S.proc is not None:
         raise AetherError("Aether is already running. Stop it first.")
     binary = find_binary()
@@ -407,15 +420,21 @@ async def start(options: Optional[dict] = None, persist: bool = True) -> None:
 
 
 async def stop() -> None:
+    if S.maintenance:
+        # Stop during a best-config test == cancel it; the tunnel returns to its previous state.
+        await cancel_sweep()
+        return
     S.wanted = False
     await _terminate()
     S.phase = "stopped"
 
 
 async def restart(options: Optional[dict] = None) -> None:
+    if S.maintenance:
+        raise AetherError(_BUSY_MSG)
     opts = options if options is not None else S.options
     await _terminate()
-    await start(opts, persist=options is not None)
+    await _start_impl(opts, persist=options is not None)
 
 
 # ---------------------------------------------------------------------------
@@ -536,7 +555,7 @@ async def _restart_now(options: dict) -> None:
     W.consecutive_fails = 0
     await _terminate()
     try:
-        await start(options, persist=False)
+        await _start_impl(options, persist=False)
     except AetherError as e:
         log_line(f"[watchdog] restart failed: {e}", "error")
         await _schedule_restart(f"restart failed: {e}")
@@ -634,6 +653,257 @@ async def _watchdog_loop() -> None:
             raise
         except Exception as e:
             log_line(f"[watchdog] {e}", "error")
+
+
+# ---------------------------------------------------------------------------
+# Best-config sweep
+# ---------------------------------------------------------------------------
+
+SWEEP_DEFAULT_SCANS = ("turbo", "balanced")
+SWEEP_MAX_ATTEMPTS = 10
+_SCAN_WAIT = {"turbo": 1.0, "balanced": 1.5, "thorough": 2.0, "verified": 2.0, "ironclad": 3.0}
+
+
+class _Sweep:
+    def __init__(self) -> None:
+        self.status = "idle"      # idle | running | finishing | done | cancelled | error
+        self.combos: list[tuple[str, str]] = []
+        self.results: list[dict[str, Any]] = []
+        self.done = 0
+        self.current: Optional[dict] = None
+        self.attempts = 3
+        self.save = True
+        self.winner: Optional[dict] = None
+        self.winner_opts: Optional[dict] = None
+        self.saved = False
+        self.error: Optional[str] = None
+        self.started_at: Optional[float] = None
+        self.finished_at: Optional[float] = None
+        self.no_restore = False
+        self.task: Optional[asyncio.Task] = None
+
+
+SW = _Sweep()
+
+
+def _rank_key(r: dict[str, Any]) -> tuple:
+    # working configs first, then the most reliable, then the fastest
+    return (not r["ok"], r["attempts"] - r["ok_count"], r["avg_ms"] if r["avg_ms"] is not None else 1e12)
+
+
+def _pick(allowed: tuple, raw: Any) -> list[str]:
+    if raw is None:
+        return list(allowed)
+    if isinstance(raw, str):
+        raw = [raw]
+    out: list[str] = []
+    for v in raw if isinstance(raw, (list, tuple)) else []:
+        if isinstance(v, str) and v in allowed and v not in out:
+            out.append(v)
+    return out
+
+
+def sweep_status() -> dict[str, Any]:
+    now = time.time()
+    results = []
+    for i, r in enumerate(sorted(SW.results, key=_rank_key), 1):
+        results.append({**r, "rank": i})
+    end = SW.finished_at or now
+    return {
+        "status": SW.status,
+        "active": S.maintenance,
+        "total": len(SW.combos),
+        "done": SW.done,
+        "current": SW.current,
+        "attempts": SW.attempts,
+        "save": SW.save,
+        "results": results,
+        "winner": SW.winner,
+        "saved": SW.saved,
+        "error": SW.error,
+        "elapsed_sec": int(end - SW.started_at) if SW.started_at else None,
+        "schema": {
+            "protocols": PROTOCOLS, "scans": SCAN_MODES,
+            "default_protocols": PROTOCOLS, "default_scans": SWEEP_DEFAULT_SCANS,
+            "max_attempts": SWEEP_MAX_ATTEMPTS,
+        },
+    }
+
+
+async def start_sweep(protocols: Any = None, scans: Any = None, attempts: Any = 3, save: bool = True) -> None:
+    if S.maintenance:
+        raise AetherError("A best-config test is already running.")
+    if not find_binary():
+        raise AetherError("Aether binary not found. Install it first.")
+    protos = _pick(PROTOCOLS, protocols)
+    scs = _pick(SCAN_MODES, scans if scans is not None else list(SWEEP_DEFAULT_SCANS))
+    if not protos:
+        raise AetherError("Select at least one protocol.")
+    if not scs:
+        raise AetherError("Select at least one scan mode.")
+    try:
+        n = int(attempts)
+    except (TypeError, ValueError):
+        n = 3
+    n = max(1, min(n, SWEEP_MAX_ATTEMPTS))
+
+    # protocol/scan vary; port, ip family, noize and quick-reconnect come from the current/saved options
+    base = parse_options(S.options or S.cfg.get("options") or {})
+    prev = {
+        "running": S.proc is not None,
+        "options": S.options or S.cfg.get("options"),
+        "wanted": S.wanted,
+    }
+
+    S.maintenance = True        # set before any await: watchdog and Start/Restart step aside right now
+    SW.status = "running"
+    SW.combos = [(p, sc) for p in protos for sc in scs]
+    SW.results = []
+    SW.done = 0
+    SW.current = None
+    SW.attempts = n
+    SW.save = bool(save)
+    SW.winner = None
+    SW.winner_opts = None
+    SW.saved = False
+    SW.error = None
+    SW.started_at = time.time()
+    SW.finished_at = None
+    SW.no_restore = False
+
+    app_state.log_event("Info", f"Best-config test started ({len(SW.combos)} combinations)")
+    SW.task = asyncio.create_task(_run_sweep(base, list(SW.combos), n, bool(save), prev))
+    S.tasks.add(SW.task)
+    SW.task.add_done_callback(S.tasks.discard)
+
+
+async def cancel_sweep() -> bool:
+    t = SW.task
+    if not S.maintenance or t is None or t.done():
+        return False
+    if SW.status == "running":      # never interrupt the restore phase half-way
+        t.cancel()
+    await asyncio.wait([t], timeout=90)
+    return True
+
+
+async def _measure_combo(opts: dict[str, Any], attempts: int) -> dict[str, Any]:
+    res: dict[str, Any] = {
+        "protocol": opts["protocol"], "scan": opts["scan"], "ok": False,
+        "avg_ms": None, "min_ms": None, "max_ms": None,
+        "ok_count": 0, "attempts": attempts, "connect_sec": None,
+        "gateway": None, "exit": None, "error": None,
+    }
+    t0 = _now()
+    await _terminate()
+    try:
+        await _start_impl(opts, persist=False)
+    except AetherError as e:
+        res["error"] = str(e)[:160]
+        return res
+
+    deadline = t0 + _num("SWEEP_CONNECT_TIMEOUT_SEC", 60) * _SCAN_WAIT.get(opts["scan"], 1.0)
+    while S.phase != "connected":
+        if S.proc is None:
+            res["error"] = (S.last_error or "Aether exited before connecting")[:160]
+            return res
+        if _now() >= deadline:
+            res["error"] = "connect timeout"
+            await _terminate()
+            return res
+        await asyncio.sleep(0.5)
+
+    res["connect_sec"] = round(_now() - t0, 1)
+    res["gateway"] = S.gateway
+    res["exit"] = S.exit
+    probe_timeout = _tuning()["probe_timeout"]
+    samples: list[int] = []
+    last_err = None
+    for i in range(attempts):
+        p = await probe(opts["port"], probe_timeout)
+        if p["ok"]:
+            samples.append(p["ms"])
+        else:
+            last_err = p["error"]
+        if i < attempts - 1:
+            await asyncio.sleep(0.3)
+    res["ok_count"] = len(samples)
+    if samples:
+        res.update(ok=True, avg_ms=int(sum(samples) / len(samples)), min_ms=min(samples), max_ms=max(samples))
+    else:
+        res["error"] = (last_err or "probe failed")[:160]
+    await _terminate()
+    return res
+
+
+async def _run_sweep(base: dict, combos: list, attempts: int, save: bool, prev: dict) -> None:
+    final = "done"
+    try:
+        for proto, scan in combos:
+            SW.current = {"protocol": proto, "scan": scan}
+            SW.results.append(await _measure_combo({**base, "protocol": proto, "scan": scan}, attempts))
+            SW.done += 1
+        SW.current = None
+        best = sorted((r for r in SW.results if r["ok"]), key=_rank_key)
+        if best:
+            SW.winner = best[0]
+            SW.winner_opts = {**base, "protocol": best[0]["protocol"], "scan": best[0]["scan"]}
+        else:
+            SW.error = "No configuration could connect and pass the latency probe."
+    except asyncio.CancelledError:
+        final = "cancelled"
+    except Exception as e:  # never leave the panel stuck in maintenance
+        final = "error"
+        SW.error = str(e)[:200] or type(e).__name__
+        logger.exception("best-config sweep failed")
+    SW.current = None
+    SW.status = "finishing"
+    try:
+        await _sweep_restore(final, save, prev)
+    except Exception as e:
+        logger.exception("could not restore the tunnel after the sweep")
+        SW.error = SW.error or f"restore failed: {e}"[:200]
+        log_line(f"[sweep] restore failed: {e}", "error")
+    finally:
+        SW.finished_at = time.time()
+        SW.status = final
+        S.maintenance = False
+        if final == "done" and SW.winner:
+            app_state.log_event("Info", f"Best config: {SW.winner['protocol']}/{SW.winner['scan']} "
+                                        f"({SW.winner['avg_ms']} ms)")
+        else:
+            app_state.log_event("Info", f"Best-config test {final}")
+
+
+async def _sweep_restore(final: str, save: bool, prev: dict) -> None:
+    await _terminate()
+    if SW.no_restore:
+        S.wanted = False
+        S.phase = "stopped"
+        return
+    W.reset_idle()
+    W.next_restart_at = None
+
+    if final == "done" and save and SW.winner_opts:
+        wopts = SW.winner_opts
+        await _save_cfg(options=wopts, last_good={"options": wopts, "at": int(time.time() * 1000)})
+        SW.saved = True
+        W.good_saved = True
+        S.wanted = True
+        await _start_impl(wopts, persist=False)
+        return
+
+    # back to what it was before the test
+    S.options = prev["options"]
+    S.gateway = None
+    S.exit = None
+    S.last_error = None
+    if prev["running"] and prev["options"]:
+        S.wanted = True
+        await _start_impl(prev["options"], persist=False)
+    else:
+        S.wanted = bool(prev["wanted"])
+        S.phase = "stopped"
 
 
 # ---------------------------------------------------------------------------
@@ -751,6 +1021,8 @@ def status() -> dict[str, Any]:
         "outbound_active": upstream.uses_aether(),
         "outbound_env_override": bool(getattr(settings, "aether_outbound", "")),
         "last_good": S.cfg.get("last_good"),
+        "maintenance": S.maintenance,
+        "sweep": sweep_status(),
         "watchdog": {
             "enabled": S.watchdog_task is not None and not S.watchdog_task.done(),
             "consecutive_failures": W.consecutive_fails,
@@ -803,6 +1075,9 @@ async def init() -> None:
 
 async def shutdown() -> None:
     S.wanted = False
+    if S.maintenance and SW.task is not None and not SW.task.done():
+        SW.no_restore = True
+        await cancel_sweep()
     if S.watchdog_task:
         S.watchdog_task.cancel()
         try:

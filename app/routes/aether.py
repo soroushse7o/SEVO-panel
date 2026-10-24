@@ -7,6 +7,9 @@ Aether tunnel control API (all endpoints require the panel session).
     POST /api/aether/restart     body: tunnel options (optional)
     POST /api/aether/install     download + verify the Aether binary
     POST /api/aether/settings    body: {"outbound_mode": "direct|aether|auto", "auto_start": bool}
+    GET  /api/aether/sweep         best-config test: progress + ranked results
+    POST /api/aether/sweep/start   body: {"protocols": [...], "scans": [...], "attempts": 3, "save": true}
+    POST /api/aether/sweep/cancel  stop the test; the tunnel returns to its previous state
 """
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -71,3 +74,23 @@ async def aether_settings(body: dict, _=Depends(require_auth)):
     except aether.AetherError as e:
         return _err(str(e))
     return {"ok": True}
+
+
+@router.get("/sweep")
+async def aether_sweep_status(_=Depends(require_auth)):
+    return aether.sweep_status()
+
+
+@router.post("/sweep/start")
+async def aether_sweep_start(body: dict, _=Depends(require_auth)):
+    try:
+        await aether.start_sweep(
+            body.get("protocols"), body.get("scans"), body.get("attempts", 3), body.get("save", True) is not False)
+    except aether.AetherError as e:
+        return _err(str(e), 409 if "already running" in str(e) else 400)
+    return {"ok": True}
+
+
+@router.post("/sweep/cancel")
+async def aether_sweep_cancel(_=Depends(require_auth)):
+    return {"ok": await aether.cancel_sweep()}

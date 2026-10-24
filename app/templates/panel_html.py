@@ -3,7 +3,7 @@ PANEL_HTML = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>SE7O-SNA Panel</title>
 <link rel="icon" type="image/png" href="/img/favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -127,9 +127,9 @@ a{text-decoration:none;color:inherit;}
 .act-qr{color:#a78bfa;border-color:rgba(167,139,250,0.2)}
 .act-edit{color:var(--yellow);border-color:rgba(251,191,36,0.2)}
 .act-del{color:var(--red);border-color:rgba(248,113,113,0.2)}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--surface);color:var(--text);border:1px solid var(--border2);border-radius:14px;padding:14px 28px;font-size:0.9rem;font-weight:600;opacity:0;transition:all 0.3s;z-index:999;backdrop-filter:blur(24px);box-shadow:0 0 30px var(--primary-dim)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--surface);color:var(--text);border:1px solid var(--border2);border-radius:14px;padding:14px 28px;font-size:0.9rem;font-weight:600;opacity:0;transition:all 0.3s;z-index:10001;backdrop-filter:blur(24px);box-shadow:0 0 30px var(--primary-dim)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.mo{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.mo{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
 .mo.show{display:flex}
 .mo-box{background:var(--surface2);border:1px solid var(--border2);border-radius:24px;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 0 40px var(--primary-dim);backdrop-filter:blur(20px);position:relative;}
 .mo-title{font-size:1.2rem;font-weight:700;margin-bottom:18px;color:var(--primary)}
@@ -186,6 +186,72 @@ textarea.fi{resize:vertical;min-height:90px;}
 .mt-kv:last-child{border-bottom:none;}
 .mt-kv span{color:var(--text3);}
 .mt-kv b{color:var(--text);font-weight:700;text-align:right;word-break:break-all;}
+.mo-actions{display:flex;gap:6px;margin-top:10px;}
+.m-select-all{display:none;}
+.bc-list{display:flex;flex-direction:column;gap:8px;}
+.bc-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface3);}
+.bc-item.win{border-color:var(--primary);box-shadow:0 0 12px var(--primary-dim);}
+.bc-item.fail{opacity:.75;}
+.bc-item.cur{border-style:dashed;animation:bcPulse 1.2s ease-in-out infinite;}
+@keyframes bcPulse{0%,100%{opacity:1}50%{opacity:.55}}
+.bc-rank{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem;background:var(--surface);color:var(--text3);flex:0 0 auto;}
+.bc-item.win .bc-rank{background:var(--primary);color:#000;}
+.bc-main{flex:1;min-width:0;direction:ltr;text-align:left;}
+.bc-name{font-weight:700;font-size:.95rem;}
+.bc-sub{font-size:.74rem;color:var(--text3);margin-top:2px;word-break:break-word;}
+.bc-ms{font-weight:800;font-size:1.05rem;white-space:nowrap;direction:ltr;}
+.mobile-nav .nav-item.active{color:var(--primary);}
+@media(max-width:768px){
+  :root{--header-h:52px;}
+  /* header: compact */
+  .header{padding:0 8px;}
+  .header-inner{flex-wrap:nowrap;gap:6px;}
+  .header-inner>div:first-child{gap:8px !important;min-width:0;}
+  .header img{height:26px !important;width:26px !important;}
+  .logo{font-size:1.05rem;letter-spacing:0;white-space:nowrap;}
+  .version-tag,#panel-clock{display:none;}
+  .header-right{flex-shrink:0;}
+  .header-right .btn{padding:4px 8px;font-size:.7rem;white-space:nowrap;}
+  .lang-btn{padding:3px 7px;}
+  .main{padding:12px 12px 100px;}
+  .card{padding:14px;}
+  /* bottom bar: one scrollable row, tabs keep their size */
+  .mobile-nav .nav-items{justify-content:flex-start;overflow-x:auto;overflow-y:hidden;gap:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;}
+  .mobile-nav .nav-items::-webkit-scrollbar{display:none;}
+  .mobile-nav .nav-item{flex:0 0 auto;min-width:66px;padding:4px 8px;white-space:nowrap;}
+  /* modals: bottom sheet above the bar, action buttons pinned to the bottom */
+  .mo{align-items:flex-end;}
+  .mo-box{max-width:100% !important;border-radius:20px 20px 0 0;max-height:92vh;max-height:92dvh;padding:20px 16px 0;border-bottom:none;animation:sheetUp .25s ease;}
+  @keyframes sheetUp{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+  .mo-box>:last-child{margin-bottom:calc(16px + env(safe-area-inset-bottom));}
+  .mo-box>.mo-actions:last-child{margin-bottom:0;}
+  .mo-actions{position:sticky;bottom:0;z-index:2;flex-wrap:wrap;background:var(--surface2);margin:12px -16px 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border);}
+  .mo-actions .btn{justify-content:center;}
+  /* toast: above the bottom bar */
+  .toast{bottom:calc(84px + env(safe-area-inset-bottom));max-width:calc(100vw - 24px);padding:12px 18px;font-size:.85rem;text-align:center;}
+  /* iOS zooms on focus when the font is under 16px */
+  input:not([type=checkbox]):not([type=radio]):not([type=color]):not([type=range]),select,textarea,.fi,.fs{font-size:16px !important;}
+  /* button rows wrap instead of overflowing */
+  .page>div[style*="display:flex"],.card>div[style*="display:flex"]{flex-wrap:wrap;}
+  #srch{flex:1 1 100% !important;}
+  .m-select-all{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:.85rem;color:var(--text2);}
+  /* inbounds table -> cards */
+  #inbound-table thead{display:none;}
+  #inbound-table,#inbound-table tbody{display:block;width:100%;}
+  #inbound-table tr{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;position:relative;padding:12px;border-bottom:1px solid var(--border);}
+  #inbound-table td{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:0;border:none;background:none;text-align:start;width:auto;min-width:0 !important;max-width:none !important;white-space:normal !important;}
+  #inbound-table td::before{content:attr(data-label);font-size:.65rem;font-weight:700;text-transform:uppercase;color:var(--text3);}
+  #inbound-table td.c-chk{position:absolute;top:12px;inset-inline-end:12px;}
+  #inbound-table td.c-chk::before,#inbound-table td.c-name::before,#inbound-table td.c-act::before{content:none;}
+  #inbound-table td.c-name{grid-column:1/-1;font-size:1rem;padding-inline-end:30px;}
+  #inbound-table td.c-usage,#inbound-table td.c-live,#inbound-table td.c-act{grid-column:1/-1;}
+  #inbound-table td.c-usage .pill{width:100%;}
+  #inbound-table td.c-act>div{flex-direction:row !important;align-items:center !important;justify-content:space-between;width:100%;gap:10px !important;}
+  #inbound-table td.c-act>div>div{justify-content:flex-end !important;}
+  #inbound-table .act-btn{padding:6px 9px;}
+  .tbl th:nth-child(4),.tbl td:nth-child(4){width:auto;}
+}
+@media(max-width:360px){.logo{display:none;}}
 </style>
 </head>
 <body>
@@ -254,7 +320,7 @@ textarea.fi{resize:vertical;min-height:90px;}
           <button class="nav-link" data-page="logs"><svg class="ic"><use href="#ic-logs"/></svg> <span data-en="Logs" data-fa="لاگ‌ها">Logs</span></button>
           <button class="nav-link" data-page="telegram"><svg class="ic"><use href="#ic-telegram"/></svg> <span data-en="Telegram" data-fa="تلگرام">Telegram</span></button>
           <button class="nav-link" data-page="aether"><svg class="ic"><use href="#ic-bolt"/></svg> <span data-en="Aether" data-fa="Aether">Aether</span></button>
-          <button class="nav-link" data-page="endpoints"><svg class="ic"><use href="#ic-refresh"/></svg> <span data-en="Best Endpoint" data-fa="پیدا کردن بهترین اندپوینت">Best Endpoint</span></button>
+          <button class="nav-link" data-page="bestconfig"><svg class="ic"><use href="#ic-check"/></svg> <span data-en="Best Config" data-fa="بهترین کانفیگ">Best Config</span></button>
           <button class="nav-link" data-page="mtproxy"><svg class="ic"><use href="#ic-bolt"/></svg> <span data-en="MTProxy" data-fa="ام‌تی پراکسی">MTProxy</span></button>
           <button class="nav-link" data-page="settings"><svg class="ic"><use href="#ic-settings"/></svg> <span data-en="Settings" data-fa="تنظیمات">Settings</span></button>
         </nav>
@@ -317,18 +383,19 @@ textarea.fi{resize:vertical;min-height:90px;}
           <input type="file" id="import-file" style="display:none" accept=".json" onchange="importLinks(this)">
         </div>
       </div>
-      <div style="display:flex;gap:10px;margin-bottom:16px;">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
         <input id="srch" placeholder="Search…" oninput="filterLinks()" class="fi" style="flex:1;">
         <button class="chip active" data-filter="all" data-en="All" data-fa="همه" onclick="setFilter('all',this)">All</button>
         <button class="chip" data-filter="active" data-en="Active" data-fa="فعال" onclick="setFilter('active',this)">Active</button>
         <button class="chip" data-filter="off" data-en="Off" data-fa="خاموش" onclick="setFilter('off',this)">Off</button>
       </div>
-      <div style="display:flex;gap:6px;margin-bottom:10px;">
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
         <button class="btn btn-outline btn-sm" onclick="batchAction('activate')" data-en="Activate Selected" data-fa="فعال‌سازی انتخاب">Activate Selected</button>
         <button class="btn btn-outline btn-sm" onclick="batchAction('deactivate')" data-en="Deactivate Selected" data-fa="غیرفعال‌سازی انتخاب">Deactivate Selected</button>
         <button class="btn btn-outline btn-sm" onclick="batchAction('reset_usage')" data-en="Reset Usage Selected" data-fa="بازنشانی مصرف انتخاب">Reset Usage Selected</button>
         <button class="btn btn-danger btn-sm" onclick="batchAction('delete')" data-en="Delete Selected" data-fa="حذف انتخاب">Delete Selected</button>
       </div>
+      <label class="m-select-all"><input type="checkbox" id="select-all-m" onchange="toggleSelectAllM()"> <span data-en="Select all" data-fa="انتخاب همه">Select all</span></label>
       <div class="card" style="padding:0;overflow:hidden;">
         <div class="tbl-wrap"><table class="tbl" id="inbound-table"><thead><tr><th><input type="checkbox" id="select-all" onchange="toggleSelectAll()"></th><th data-sort="label" onclick="sortLinks('label')"><span data-en="Name" data-fa="نام">Name</span> ↕</th><th data-en="Type" data-fa="نوع">Type</th><th data-sort="used_bytes" onclick="sortLinks('used_bytes')"><span data-en="Usage" data-fa="مصرف">Usage</span> ↕</th><th data-en="Conns" data-fa="اتصالات">Conns</th><th data-en="Connections" data-fa="اتصالات فعال">Connections</th><th data-sort="expires_at" onclick="sortLinks('expires_at')"><span data-en="Expiry" data-fa="انقضا">Expiry</span> ↕</th><th data-en="Status" data-fa="وضعیت">Status</th><th data-en="Actions" data-fa="عملیات">Actions</th></tr></thead><tbody id="ltb"></tbody></table></div>
         <div class="empty" id="lempty" style="display:none;padding:30px;">No inbounds found</div>
@@ -437,10 +504,11 @@ example.com"></textarea></div>
         </div>
         <div id="ae-info" style="font-size:.85rem;color:var(--text2);margin-top:8px;line-height:1.8;direction:ltr;text-align:left;"></div>
         <div id="ae-err" style="display:none;margin-top:8px;color:var(--red);font-size:.85rem;direction:ltr;text-align:left;"></div>
+        <div id="ae-sweep-note" style="display:none;margin-top:8px;color:var(--yellow);font-size:.85rem;" data-en="A best-config test is running. Start / Restart are disabled; Stop cancels the test and restores the tunnel." data-fa="تست بهترین کانفیگ در حال اجراست. Start/Restart غیرفعال است؛ Stop تست را لغو و تونل را به حالت قبل برمی‌گرداند.">A best-config test is running. Start / Restart are disabled; Stop cancels the test and restores the tunnel.</div>
         <div id="ae-nobin" style="display:none;margin-top:8px;color:var(--yellow);font-size:.85rem;" data-en="Aether binary not found. It ships with the Docker image (set AETHER_BIN if you installed it elsewhere)." data-fa="فایل اجرایی Aether پیدا نشد. این فایل در ایمیج Docker موجود است (در غیر این صورت AETHER_BIN را تنظیم کنید).">Aether binary not found. It ships with the Docker image (set AETHER_BIN if you installed it elsewhere).</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
-          <button class="btn btn-primary btn-sm" onclick="aeStart()" data-en="Start" data-fa="شروع">Start</button>
-          <button class="btn btn-outline btn-sm" onclick="aeRestart()" data-en="Restart" data-fa="ریستارت">Restart</button>
+          <button class="btn btn-primary btn-sm" id="ae-btn-start" onclick="aeStart()" data-en="Start" data-fa="شروع">Start</button>
+          <button class="btn btn-outline btn-sm" id="ae-btn-restart" onclick="aeRestart()" data-en="Restart" data-fa="ریستارت">Restart</button>
           <button class="btn btn-danger btn-sm" onclick="aeStop()" data-en="Stop" data-fa="توقف">Stop</button>
         </div>
       </div>
@@ -484,48 +552,31 @@ example.com"></textarea></div>
       </div>
     </section>
 
-    <section class="page" id="page-endpoints">
+    <section class="page" id="page-bestconfig">
       <div class="page-header">
         <div>
-          <div class="page-title" data-en="Best Endpoint Finder" data-fa="پیدا کردن بهترین اندپوینت">Best Endpoint Finder</div>
-          <div class="page-sub" data-en="Network diagnosis and latency test, measured from this server" data-fa="تشخیص شبکه و تست تاخیر، اندازه‌گیری‌شده از روی همین سرور">Network diagnosis and latency test, measured from this server</div>
+          <div class="page-title" data-en="Best Config" data-fa="بهترین کانفیگ">Best Config</div>
+          <div class="page-sub" data-en="Runs every protocol / scan combination on this server and measures the real HTTPS latency through the tunnel" data-fa="هر ترکیب پروتکل و حالت اسکن را روی همین سرور اجرا می‌کند و تأخیر واقعی HTTPS را از داخل تونل می‌سنجد">Runs every protocol / scan combination on this server and measures the real HTTPS latency through the tunnel</div>
         </div>
       </div>
 
       <div class="card">
-        <div class="fg"><label class="fl" data-en="Targets (IP, hostname or CIDR; one per line)" data-fa="هدف‌ها (آی‌پی، دامنه یا CIDR؛ هر خط یکی)">Targets (IP, hostname or CIDR; one per line)</label>
-          <textarea class="fi" id="ef-targets" rows="5" placeholder="104.16.0.0/13&#10;162.159.1.1&#10;blog.railway.com" style="direction:ltr;text-align:left;font-family:monospace;"></textarea></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-          <button class="btn btn-outline btn-sm" onclick="efPreset('cf')" data-en="Cloudflare ranges" data-fa="رنج‌های کلودفلر">Cloudflare ranges</button>
-          <button class="btn btn-outline btn-sm" onclick="efPreset('clean')" data-en="My Clean IP list" data-fa="لیست آی‌پی تمیز من">My Clean IP list</button>
+        <div class="fg"><label class="fl" data-en="Protocols" data-fa="پروتکل‌ها">Protocols</label><div class="pill-group" id="bc-protos"></div></div>
+        <div class="fg"><label class="fl" data-en="Scan modes" data-fa="حالت‌های اسکن">Scan modes</label><div class="pill-group" id="bc-scans"></div></div>
+        <div class="fg" style="max-width:220px;"><label class="fl" data-en="Attempts per config" data-fa="تعداد سنجش برای هر کانفیگ">Attempts per config</label><input class="fi" type="number" id="bc-attempts" min="1" max="10" value="3"></div>
+        <label style="display:block;margin-bottom:12px;"><input type="checkbox" id="bc-save" checked> <span data-en="Save the winner and connect with it" data-fa="ذخیره‌ی برنده و اتصال با آن">Save the winner and connect with it</span></label>
+        <div style="font-size:.8rem;color:var(--yellow);margin-bottom:12px;line-height:1.7;" data-en="The tunnel is cut and reconnected during the test, the watchdog stands aside, and Start / Restart are disabled until it finishes. Cancel or Stop returns the tunnel to its previous state." data-fa="در طول تست تونل قطع و وصل می‌شود، watchdog کنار می‌رود و Start/Restart تا پایان تست غیرفعال است. با «لغو» یا Stop، تونل به حالت قبل برمی‌گردد.">The tunnel is cut and reconnected during the test, the watchdog stands aside, and Start / Restart are disabled until it finishes. Cancel or Stop returns the tunnel to its previous state.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" id="bc-start" onclick="bcStart()" data-en="Start test" data-fa="شروع تست">Start test</button>
+          <button class="btn btn-danger btn-sm" id="bc-cancel" onclick="bcCancel()" style="display:none;" data-en="Cancel" data-fa="لغو">Cancel</button>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;">
-          <div class="fg"><label class="fl" data-en="Test type" data-fa="نوع تست">Test type</label>
-            <select class="fi" id="ef-mode">
-              <option value="tls">TLS handshake</option>
-              <option value="tcp">TCP connect</option>
-              <option value="http">HTTP trace (Cloudflare colo)</option>
-            </select></div>
-          <div class="fg"><label class="fl">Port</label><input class="fi" type="number" id="ef-port" min="1" max="65535" value="443"></div>
-          <div class="fg"><label class="fl">SNI / Host</label><input class="fi" id="ef-sni" placeholder="example.com" style="direction:ltr;text-align:left;"></div>
-          <div class="fg"><label class="fl" data-en="Attempts" data-fa="تعداد تلاش">Attempts</label><input class="fi" type="number" id="ef-attempts" min="1" max="10" value="3"></div>
-          <div class="fg"><label class="fl" data-en="Timeout (s)" data-fa="تایم‌اوت (ثانیه)">Timeout (s)</label><input class="fi" type="number" id="ef-timeout" min="1" max="10" value="4"></div>
-          <div class="fg"><label class="fl" data-en="Random IPs per CIDR" data-fa="آی‌پی تصادفی از هر CIDR">Random IPs per CIDR</label><input class="fi" type="number" id="ef-sample" min="1" max="256" value="10"></div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
-          <button class="btn btn-primary btn-sm" id="ef-start" onclick="efStart()" data-en="Start test" data-fa="شروع تست">Start test</button>
-          <button class="btn btn-danger btn-sm" id="ef-cancel" onclick="efCancel()" style="display:none;" data-en="Cancel" data-fa="لغو">Cancel</button>
-          <button class="btn btn-outline btn-sm" onclick="efAddBest()" data-en="Add best 5 to Clean IP" data-fa="افزودن ۵ مورد برتر به آی‌پی تمیز">Add best 5 to Clean IP</button>
-        </div>
-        <div id="ef-status" style="font-size:.85rem;color:var(--text2);margin-top:10px;"></div>
-        <div style="height:6px;background:var(--border);border-radius:4px;margin-top:6px;overflow:hidden;"><div id="ef-bar" style="height:100%;width:0;background:var(--primary);transition:width .3s;"></div></div>
+        <div id="bc-status" style="font-size:.85rem;color:var(--text2);margin-top:12px;line-height:1.7;"></div>
+        <div style="height:6px;background:var(--border);border-radius:4px;margin-top:6px;overflow:hidden;"><div id="bc-bar" style="height:100%;width:0;background:var(--primary);transition:width .3s;"></div></div>
       </div>
 
-      <div class="card" style="padding:0;overflow:hidden;">
-        <div class="tbl-wrap"><table class="tbl"><thead><tr>
-          <th>#</th><th data-en="Endpoint" data-fa="اندپوینت">Endpoint</th><th data-en="Avg ms" data-fa="میانگین">Avg ms</th><th>Min</th><th>Max</th><th data-en="Jitter" data-fa="جیتر">Jitter</th><th data-en="Loss" data-fa="افت">Loss</th><th data-en="Detail" data-fa="جزئیات">Detail</th><th></th>
-        </tr></thead><tbody id="ef-tbody"></tbody></table></div>
-        <div class="empty" id="ef-empty" style="padding:30px;" data-en="No results yet" data-fa="هنوز نتیجه‌ای نیست">No results yet</div>
+      <div class="card">
+        <div class="bc-list" id="bc-list"></div>
+        <div class="empty" id="bc-empty" style="padding:24px;" data-en="No results yet" data-fa="هنوز نتیجه‌ای نیست">No results yet</div>
       </div>
     </section>
     <section class="page" id="page-telegram">
@@ -665,7 +716,7 @@ example.com"></textarea></div>
       <div class="nav-item" data-page="logs" onclick="switchPage('logs')"><span class="nav-icon"><svg class="ic"><use href="#ic-logs"/></svg></span><span data-en="Logs" data-fa="لاگ">Logs</span></div>
       <div class="nav-item" data-page="telegram" onclick="switchPage('telegram')"><span class="nav-icon"><svg class="ic"><use href="#ic-telegram"/></svg></span><span data-en="Bot" data-fa="ربات">Bot</span></div>
       <div class="nav-item" data-page="aether" onclick="switchPage('aether')"><span class="nav-icon"><svg class="ic"><use href="#ic-bolt"/></svg></span><span data-en="Aether" data-fa="Aether">Aether</span></div>
-      <div class="nav-item" data-page="endpoints" onclick="switchPage('endpoints')"><span class="nav-icon"><svg class="ic"><use href="#ic-refresh"/></svg></span><span data-en="Endpoint" data-fa="اندپوینت">Endpoint</span></div>
+      <div class="nav-item" data-page="bestconfig" onclick="switchPage('bestconfig')"><span class="nav-icon"><svg class="ic"><use href="#ic-check"/></svg></span><span data-en="Best Config" data-fa="بهترین کانفیگ">Best Config</span></div>
       <div class="nav-item" data-page="mtproxy" onclick="switchPage('mtproxy')"><span class="nav-icon"><svg class="ic"><use href="#ic-bolt"/></svg></span><span data-en="MTProxy" data-fa="پراکسی">MTProxy</span></div>
       <div class="nav-item" data-page="settings" onclick="switchPage('settings')"><span class="nav-icon"><svg class="ic"><use href="#ic-settings"/></svg></span><span data-en="Settings" data-fa="تنظیمات">Settings</span></div>
     </div>
@@ -759,7 +810,7 @@ example.com"></textarea></div>
     <div class="fg"><label class="fl" data-en="Max Connections" data-fa="حداکثر اتصالات">Max Connections</label><input class="fi" type="number" id="nc" min="0" value="0" placeholder="0 = Unlimited"></div>
     <div class="fg"><label class="fl" data-en="Validity (Days)" data-fa="اعتبار (روز)">Validity (Days)</label><input class="fi" type="number" id="nd" min="0" value="0" placeholder="0 = Unlimited"></div>
     <div class="fg"><label class="fl" data-en="Color" data-fa="رنگ">Color</label><input type="color" id="alink-color" value="#39ff14"></div>
-    <div style="display:flex;gap:6px;margin-top:10px;"><button class="btn btn-primary" onclick="createLink()" style="flex:1;" data-en="Create" data-fa="ایجاد">Create</button><button class="btn btn-outline" onclick="document.getElementById('mo-add').classList.remove('show')" data-en="Cancel" data-fa="انصراف">Cancel</button></div>
+    <div class="mo-actions"><button class="btn btn-primary" onclick="createLink()" style="flex:1;" data-en="Create" data-fa="ایجاد">Create</button><button class="btn btn-outline" onclick="document.getElementById('mo-add').classList.remove('show')" data-en="Cancel" data-fa="انصراف">Cancel</button></div>
   </div>
 </div>
 
@@ -843,7 +894,7 @@ example.com"></textarea></div>
     <div class="fg"><label class="fl" data-en="Max Connections" data-fa="حداکثر اتصالات">Max Connections</label><input class="fi" type="number" id="ec" min="0" placeholder="0 = Unlimited"></div>
     <div class="fg"><label class="fl" data-en="Validity (Days)" data-fa="اعتبار (روز)">Validity (Days)</label><input class="fi" type="number" id="ed" min="0" placeholder="0 = Unlimited"></div>
     <div class="fg"><label class="fl" data-en="Color" data-fa="رنگ">Color</label><input type="color" id="e-color" value="#39ff14"></div>
-    <div style="display:flex;gap:6px;margin-top:10px;"><button class="btn btn-primary" onclick="saveEdit()" style="flex:1;" data-en="Save" data-fa="ذخیره">Save</button><button class="btn btn-danger btn-sm" onclick="resetTraf()" data-en="Reset Traffic" data-fa="بازنشانی ترافیک">Reset Traffic</button><button class="btn btn-outline" onclick="document.getElementById('mo-edit').classList.remove('show')" data-en="Cancel" data-fa="انصراف">Cancel</button></div>
+    <div class="mo-actions"><button class="btn btn-primary" onclick="saveEdit()" style="flex:1;" data-en="Save" data-fa="ذخیره">Save</button><button class="btn btn-danger btn-sm" onclick="resetTraf()" data-en="Reset Traffic" data-fa="بازنشانی ترافیک">Reset Traffic</button><button class="btn btn-outline" onclick="document.getElementById('mo-edit').classList.remove('show')" data-en="Cancel" data-fa="انصراف">Cancel</button></div>
   </div>
 </div>
 
@@ -1154,6 +1205,7 @@ function setLang(l){
     loadLogs();
     renderAddrs();
     filterLinks();
+    if(bcLast)bcRender(bcLast);
   }
   const footer = $m('footer-dedication');
   if (footer) footer.innerHTML = footerTexts[l] || footerTexts['en'];
@@ -1195,7 +1247,7 @@ function startPanelClock() {
 async function doLogin(){const u=$m('login-user').value.trim();const pw=$m('login-pw').value;$m('login-err').style.display='none';try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:pw})});if(r.ok){$m('login-pw').value='';showDashboard();}else $m('login-err').style.display='block';}catch{console.error('Login error');$m('login-err').style.display='block';}}
 async function doLogout(){await fetch('/api/logout',{method:'POST'});showLogin();}
 document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.addEventListener('click',()=>{switchPage(el.dataset.page);document.getElementById('mainNav').classList.remove('open');}));
-function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$m('page-'+id).classList.add('active');if(id==='mtproxy')loadMtproxy();if(id==='aether')startAether();else stopAetherPoll();if(id==='endpoints')efLoadPresets();document.querySelectorAll('.nav-link').forEach(n=>n.classList.toggle('active',n.dataset.page===id));document.querySelectorAll('.mobile-nav .nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===id));}
+function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$m('page-'+id).classList.add('active');if(id==='mtproxy')loadMtproxy();if(id==='aether')startAether();else stopAetherPoll();if(id==='bestconfig')bcOpen();else bcPollStop();document.querySelectorAll('.nav-link').forEach(n=>n.classList.toggle('active',n.dataset.page===id));document.querySelectorAll('.mobile-nav .nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===id));try{const a=document.querySelector('.mobile-nav .nav-item.active');if(a)a.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});}catch(e){}}
 document.getElementById('hamburger-btn')?.addEventListener('click',function(e){e.stopPropagation();document.getElementById('mainNav').classList.toggle('open');});
 function toast(msg,err=false){const t=$m('toast');t.textContent=msg;t.className='toast'+(err?' err':'')+' show';clearTimeout(t._hide);t._hide=setTimeout(()=>t.classList.remove('show'),3000);}
 function fmtB(b){if(!b||b===0)return'0 B';return b>=1073741824?(b/1073741824).toFixed(2)+' GB':b>=1048576?(b/1048576).toFixed(2)+' MB':(b/1024).toFixed(1)+' KB';}
@@ -1209,7 +1261,8 @@ function aeFmtSec(s){if(s==null)return '—';s=Math.floor(s);const h=Math.floor(
 function aeFillForm(s){const sch=s.options_schema||{};const fill=(id,list)=>{const el=$m(id);if(!el||el.options.length)return;(list||[]).forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;el.appendChild(o);});};fill('ae-protocol',sch.protocol);fill('ae-scan',sch.scan);fill('ae-ip',sch.ip);fill('ae-noize',sch.noize);const o=s.saved_options||s.options||s.default_options||{};const set=(id,v)=>{const e=$m(id);if(e&&v!==undefined)e.value=v;};set('ae-protocol',o.protocol);set('ae-scan',o.scan);set('ae-ip',o.ip);set('ae-noize',o.noize);set('ae-port',o.port);$m('ae-quick').checked=o.quick_reconnect!==false;$m('ae-mode').value=s.outbound_mode||'direct';$m('ae-auto').checked=!!s.auto_start;aeFilled=true;}
 function aeReadForm(){return{protocol:$m('ae-protocol').value,transport:'h2',scan:$m('ae-scan').value,ip:$m('ae-ip').value,noize:$m('ae-noize').value,port:parseInt($m('ae-port').value,10),quick_reconnect:$m('ae-quick').checked};}
 function aeRender(s){if(!aeFilled)aeFillForm(s);const col={connected:'var(--green)',error:'var(--red)',stopped:'var(--text3)'}[s.phase]||'var(--yellow)';$m('ae-phase').innerHTML='<span style="color:'+col+'">● '+aeEsc(s.phase)+'</span>';const act=s.outbound_active;$m('ae-out').innerHTML='Outbound: <b>'+aeEsc(s.outbound_mode)+'</b> '+(act?'<span style="color:var(--green)">(users exit via Aether)</span>':'<span style="color:var(--text3)">(users exit directly)</span>');const ex=s.exit;let info=[];if(s.running&&s.options)info.push('SOCKS5 127.0.0.1:'+s.options.port+' · '+s.options.protocol+' · scan '+s.options.scan);if(s.gateway)info.push('Gateway: '+aeEsc(s.gateway));if(ex)info.push('Exit: '+aeEsc(ex.ip)+' · '+aeEsc(ex.country)+' via '+aeEsc(ex.colo)+' · '+ex.latency_ms+' ms'+(ex.warp?' · warp '+aeEsc(ex.warp):''));if(s.uptime_sec!=null)info.push('Connected for '+aeFmtSec(s.uptime_sec));if(s.pid)info.push('PID '+s.pid);$m('ae-info').innerHTML=info.join('<br>');const er=$m('ae-err');er.style.display=s.last_error&&s.phase!=='connected'?'block':'none';er.textContent=s.last_error||'';$m('ae-nobin').style.display=s.binary?'none':'block';const note={direct:'Panel users connect from this server\'s own IP (default behaviour).',auto:'Users exit via Aether while it is connected; otherwise they connect directly (the server IP may be exposed during outages).',aether:'Fail-closed: if the tunnel is down, user connections are refused instead of leaking the server IP.'};$m('ae-mode-note').textContent=note[$m('ae-mode').value]||'';const w=s.watchdog||{};$m('ae-wd').innerHTML=(w.enabled?'enabled':'disabled')+' · restarts '+(w.restarts||0)+' · failed checks '+(w.consecutive_failures||0)+'/'+(w.max_failures||0)+(w.last_check_ok===true?' · last check OK':w.last_check_ok===false?' · last check FAILED':'')+(w.next_restart_in_sec!=null?' · restart in '+w.next_restart_in_sec+'s':'')+(w.last_reason?'<br>Last reason: '+aeEsc(w.last_reason):'')+(s.last_good?'<br>Known-good preset saved':'');const lg=$m('ae-logs');const atBottom=lg.scrollTop+lg.clientHeight>=lg.scrollHeight-24;const lc={error:'var(--red)',warn:'var(--yellow)'};lg.innerHTML=(s.logs||[]).map(l=>'<span style="color:'+(lc[l.level]||'var(--text2)')+'">'+aeEsc(l.text)+'</span>').join('\n');if(atBottom)lg.scrollTop=lg.scrollHeight;}
-async function loadAether(){const s=await aeApi('status');if(s)aeRender(s);}
+async function loadAether(){const s=await aeApi('status');if(s){aeRender(s);aeSweepNote(s);}}
+function aeSweepNote(s){const on=!!(s.sweep&&s.sweep.active);const n=$m('ae-sweep-note');if(n)n.style.display=on?'block':'none';['ae-btn-start','ae-btn-restart'].forEach(id=>{const b=$m(id);if(b)b.disabled=on;});}
 function startAether(){aeFilled=false;loadAether();stopAetherPoll();aeTimer=setInterval(loadAether,3000);}
 function stopAetherPoll(){if(aeTimer){clearInterval(aeTimer);aeTimer=null;}}
 async function aeStart(){const d=await aeApi('start',aeReadForm());if(d){toast('Starting…');loadAether();}}
@@ -1221,51 +1274,60 @@ function obToggle(p){const sel=$m(p+'-ob'),inp=$m(p+'-ob-proxy');inp.style.displ
 function obRead(p){const v=$m(p+'-ob').value;if(v!=='socks5')return v;const u=$m(p+'-ob-proxy').value.trim();if(!/^socks5h?:\/\/.+:\d+$/i.test(u)){toast('Proxy must look like socks5://host:port',true);return null;}return u;}
 function obWrite(p,val){const sel=$m(p+'-ob'),inp=$m(p+'-ob-proxy');val=val||'default';if(['default','direct','aether','auto'].includes(val)){sel.value=val;inp.value='';}else{sel.value='socks5';inp.value=val;}obToggle(p);}
 function obTag(v){v=v||'default';if(v==='default')return '';const lab={direct:'direct',aether:'WARP',auto:'WARP/auto'}[v]||'proxy';return '<span class="tag" style="background:var(--primary-dim);color:var(--text2);font-size:.65em;" title="Outbound: '+esc(v.replace(/\/\/[^@\/]*@/,'//'))+'">→ '+lab+'</span>';}
-/* ---- Best Endpoint Finder ---- */
-let efJob=null,efTimer=null,efRows=[],efPresets=null;
-async function efLoadPresets(){if(efPresets)return efPresets;try{const r=await fetch('/api/endpoints/presets');if(r.ok){efPresets=await r.json();if(!$m('ef-sni').value)$m('ef-sni').value=efPresets.default_sni||'';}}catch(e){}return efPresets;}
-async function efPreset(k){const p=await efLoadPresets();if(!p)return;const ta=$m('ef-targets');if(k==='cf')ta.value=p.cloudflare_ranges.join('\n');else ta.value=(p.clean_ips||[]).filter(a=>!/\//.test(a)).join('\n');}
-function efSet(txt){$m('ef-status').textContent=txt;}
-async function efStart(){
-  await efLoadPresets();
-  const body={targets:$m('ef-targets').value,mode:$m('ef-mode').value,port:parseInt($m('ef-port').value,10)||443,sni:$m('ef-sni').value.trim(),attempts:parseInt($m('ef-attempts').value,10)||3,timeout:parseFloat($m('ef-timeout').value)||4,sample:parseInt($m('ef-sample').value,10)||10};
-  if(!body.targets.trim()){toast(lang==='fa'?'هدفی وارد نکرده‌اید':'Enter at least one target',true);return;}
-  try{
-    const r=await fetch('/api/endpoints/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(r.status===401){showLogin();return;}
-    const d=await r.json();
-    if(!r.ok||d.ok===false){toast(d.error||('Error '+r.status),true);return;}
-    efJob=d.job_id;efRows=[];efRender();$m('ef-start').disabled=true;$m('ef-cancel').style.display='';
-    efStopPoll();efTimer=setInterval(efPoll,1000);efPoll();
-  }catch(e){toast('Error',true);}
+/* ---- Best Config (Aether sweep) ---- */
+let bcTimer=null,bcLast=null;
+function bcPollStop(){if(bcTimer){clearInterval(bcTimer);bcTimer=null;}}
+function bcPollStart(){bcPollStop();bcTimer=setInterval(bcPoll,1000);}
+async function bcPoll(){
+  const s=await aeApi('sweep');if(!s){bcPollStop();return;}
+  const was=bcLast&&bcLast.active;
+  bcRender(s);
+  if(was&&!s.active)bcDone(s);
+  if(!s.active)bcPollStop();
 }
-async function efPoll(){
-  if(!efJob)return;
-  try{
-    const r=await fetch('/api/endpoints/job/'+efJob);if(!r.ok){efStopPoll();return;}
-    const j=await r.json();efRows=j.results||[];efRender();
-    const pct=j.total?Math.round(j.done*100/j.total):0;$m('ef-bar').style.width=pct+'%';
-    efSet((j.status==='running'?'Testing… ':j.status==='done'?'Done · ':j.status==='cancelled'?'Cancelled · ':'Error · ')+j.done+'/'+j.total+' ('+pct+'%)'+(j.error?' · '+j.error:''));
-    if(j.status!=='running'){efStopPoll();$m('ef-start').disabled=false;$m('ef-cancel').style.display='none';}
-  }catch(e){}
+async function bcOpen(){await bcPoll();if(bcLast&&bcLast.active)bcPollStart();}
+function bcPills(id,list,defs){const el=$m(id);if(!el||el.children.length)return;list.forEach(v=>{const b=document.createElement('button');b.type='button';b.className='pill-btn'+(defs.includes(v)?' active':'');b.dataset.v=v;b.textContent=v;b.onclick=()=>{if(!bcLast||!bcLast.active)b.classList.toggle('active');};el.appendChild(b);});}
+function bcSel(id){return Array.from(document.querySelectorAll('#'+id+' .pill-btn.active')).map(b=>b.dataset.v);}
+function bcDone(s){
+  if(s.status==='done'&&s.winner){toast((lang==='fa'?'بهترین: ':'Best: ')+s.winner.protocol+' / '+s.winner.scan+' · '+s.winner.avg_ms+' ms'+(s.saved?(lang==='fa'?' — ذخیره و متصل شد':' — saved & connected'):''));}
+  else if(s.status==='cancelled')toast(lang==='fa'?'تست لغو شد؛ تونل به حالت قبل برگشت':'Test cancelled — tunnel restored');
+  else toast(s.error||(lang==='fa'?'تست ناموفق بود':'Test failed'),true);
 }
-function efStopPoll(){if(efTimer){clearInterval(efTimer);efTimer=null;}}
-async function efCancel(){if(!efJob)return;await fetch('/api/endpoints/job/'+efJob+'/cancel',{method:'POST'});efPoll();}
-function efRender(){
-  const tb=$m('ef-tbody'),em=$m('ef-empty');
-  if(!efRows.length){tb.innerHTML='';em.style.display='block';return;}
-  em.style.display='none';
-  tb.innerHTML=efRows.slice(0,200).map((r,i)=>{
-    const ok=r.ok;const cls=!ok?'var(--red)':r.avg<150?'var(--green)':r.avg<400?'var(--yellow)':'var(--red)';
-    let det=[];if(r.ip&&r.ip!==r.target)det.push(esc(r.ip));if(r.tcp_ms!=null)det.push('tcp '+r.tcp_ms);if(r.tls_ms!=null)det.push('tls '+r.tls_ms);if(r.ttfb_ms!=null)det.push('ttfb '+r.ttfb_ms);if(r.cf)det.push('CF '+esc(r.cf.colo)+' '+esc(r.cf.loc));if(r.error)det.push('<span style="color:var(--red)">'+esc(r.error)+'</span>');
-    return '<tr><td>'+(ok?(i+1):'—')+'</td><td style="direction:ltr;text-align:left;font-family:monospace;">'+esc(r.target)+'</td><td style="color:'+cls+';font-weight:700;">'+(ok?r.avg:'—')+'</td><td>'+(ok?r.min:'—')+'</td><td>'+(ok?r.max:'—')+'</td><td>'+(ok?r.jitter:'—')+'</td><td>'+(r.loss!=null?r.loss+'%':'—')+'</td><td style="font-size:.74rem;color:var(--text2);direction:ltr;text-align:left;">'+det.join(' · ')+'</td><td><button class="act-btn act-copy" title="Copy" onclick="navigator.clipboard.writeText(\''+esc(r.target)+'\');toast(\'Copied\')"><svg class="ic"><use href="#ic-copy"/></svg></button></td></tr>';
-  }).join('');
+function bcRender(s){
+  bcLast=s;const sc=s.schema||{};
+  bcPills('bc-protos',sc.protocols||[],sc.default_protocols||[]);
+  bcPills('bc-scans',sc.scans||[],sc.default_scans||[]);
+  const busy=!!s.active,fa=lang==='fa';
+  $m('bc-start').disabled=busy;$m('bc-cancel').style.display=busy?'':'none';$m('bc-cancel').disabled=s.status==='finishing';
+  document.querySelectorAll('#bc-protos .pill-btn,#bc-scans .pill-btn').forEach(b=>b.disabled=busy);
+  $m('bc-attempts').disabled=busy;$m('bc-save').disabled=busy;
+  const pct=s.total?Math.round(s.done*100/s.total):0;
+  $m('bc-bar').style.width=(s.status==='idle'?0:pct)+'%';
+  let txt='';const cur=s.current;
+  if(s.status==='running')txt=(fa?'در حال تست… ':'Testing… ')+(cur?cur.protocol+' · '+cur.scan+' — ':'')+s.done+'/'+s.total+' ('+pct+'%)';
+  else if(s.status==='finishing')txt=fa?'در حال برگرداندن تونل…':'Restoring the tunnel…';
+  else if(s.status==='done')txt=(s.winner?(fa?'پایان · بهترین: ':'Done · best: ')+s.winner.protocol+' · '+s.winner.scan+' ('+s.winner.avg_ms+' ms)'+(s.saved?(fa?' · ذخیره شد و متصل است':' · saved and connected'):(fa?' · ذخیره نشد':' · not saved')):(s.error||''))+(s.elapsed_sec!=null?' · '+aeFmtSec(s.elapsed_sec):'');
+  else if(s.status==='cancelled')txt=(fa?'لغو شد · تونل به حالت قبل برگشت':'Cancelled · tunnel restored')+' · '+s.done+'/'+s.total;
+  else if(s.status==='error')txt=(fa?'خطا · ':'Error · ')+(s.error||'');
+  $m('bc-status').textContent=txt;
+  const rows=(s.results||[]).map(r=>{
+    const win=r.rank===1&&r.ok;
+    const col=!r.ok?'var(--red)':r.avg_ms<500?'var(--green)':r.avg_ms<1200?'var(--yellow)':'var(--red)';
+    const sub=r.ok?['min '+r.min_ms,'max '+r.max_ms,r.ok_count+'/'+r.attempts+' ok',r.connect_sec!=null?'connect '+r.connect_sec+'s':null,r.gateway?esc(r.gateway):null].filter(Boolean).join(' · '):'<span style="color:var(--red)">'+esc(r.error||'failed')+'</span>'+(r.connect_sec!=null?' · connect '+r.connect_sec+'s':'');
+    return '<div class="bc-item'+(win?' win':'')+(r.ok?'':' fail')+'"><div class="bc-rank">'+r.rank+'</div><div class="bc-main"><div class="bc-name">'+esc(r.protocol)+' · '+esc(r.scan)+'</div><div class="bc-sub">'+sub+'</div></div><div class="bc-ms" style="color:'+col+'">'+(r.ok?r.avg_ms+' ms':'—')+'</div></div>';
+  });
+  if(s.status==='running'&&cur)rows.push('<div class="bc-item cur"><div class="bc-rank">…</div><div class="bc-main"><div class="bc-name">'+esc(cur.protocol)+' · '+esc(cur.scan)+'</div><div class="bc-sub">'+(fa?'در حال اتصال و سنجش…':'connecting and measuring…')+'</div></div></div>');
+  $m('bc-list').innerHTML=rows.join('');
+  $m('bc-empty').style.display=rows.length?'none':'block';
 }
-async function efAddBest(){
-  const best=efRows.filter(r=>r.ok&&r.loss<100).slice(0,5).map(r=>r.target);
-  if(!best.length){toast(lang==='fa'?'نتیجه‌ای برای افزودن نیست':'No results to add',true);return;}
-  try{const r=await fetch('/api/addresses/batch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({addresses:best})});const d=await r.json();toast('Added '+(d.added||0)+' to Clean IP');}catch(e){toast('Error',true);}
+async function bcStart(){
+  const protocols=bcSel('bc-protos'),scans=bcSel('bc-scans');
+  if(!protocols.length||!scans.length){toast(lang==='fa'?'حداقل یک پروتکل و یک حالت اسکن انتخاب کنید':'Select at least one protocol and one scan mode',true);return;}
+  const d=await aeApi('sweep/start',{protocols,scans,attempts:parseInt($m('bc-attempts').value,10)||3,save:$m('bc-save').checked});
+  if(d){toast(lang==='fa'?'تست شروع شد…':'Test started…');bcPoll().then(()=>{if(bcLast&&bcLast.active)bcPollStart();});}
 }
+async function bcCancel(){const d=await aeApi('sweep/cancel',{});if(d){toast(lang==='fa'?'در حال لغو…':'Cancelling…');bcPoll();}}
+function toggleSelectAllM(){$m('select-all').checked=$m('select-all-m').checked;toggleSelectAll();}
 function setFilter(f,el){cf=f;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');filterLinks();}
 function filterLinks(){const q=($m('srch')?.value||'').toLowerCase();let r=allLinks;if(cf==='active')r=r.filter(l=>l.active);else if(cf==='off')r=r.filter(l=>!l.active);if(q)r=r.filter(l=>l.label.toLowerCase().includes(q)||l.uuid.toLowerCase().includes(q));renderLinks(r);}
 function renderLinks(links){
@@ -1274,16 +1336,17 @@ function renderLinks(links){
   em.style.display='none';
   tb.innerHTML=links.map(l=>{
     const u=l.used_bytes||0,lim=l.limit_bytes||0,pct=lim>0?Math.min(100,(u/lim)*100):0,col=pct>90?'var(--red)':pct>70?'var(--yellow)':'var(--primary)',ex=fmtExp(l.expires_at),ec=ex==='Expired'?'var(--red)':ex==='∞'?'var(--text3)':'var(--text2)',cc=l.current_connections||0,mc2=l.max_connections||0,check=selectedUids.has(l.uuid)?'checked':'',flagEmoji=l.flag?codeToFlag(l.flag):'',labelDisplay=(flagEmoji?flagEmoji+' ':'')+esc(l.label);
+    const L=(en,fa)=>lang==='fa'?fa:en;
     return`<tr>
-      <td><input type="checkbox" value="${l.uuid}" ${check} onchange="toggleSelectUid('${l.uuid}')"></td>
-      <td style="font-weight:600">${labelDisplay}</td>
-      <td><span class="tag tag-vless">VLESS</span> ${l.encryption&&l.encryption!=='none'?`<span class="tag" style="opacity:.6;font-size:.65em;">${l.encryption}</span>`:''} ${obTag(l.outbound)}</td>
-      <td style="white-space:nowrap"><div class="pill"><span class="pill-used">${fmtB(u)}</span><div class="pill-bar"><div class="pill-fill" style="width:${pct}%;background:${col}"></div></div><span>${fmtLim(lim)}</span></div></td>
-      <td>${cc}/${mc2||'∞'}</td>
-      <td style="max-width:180px;">${fmtConns(l.uuid)}</td>
-      <td style="color:${ec}">${ex}</td>
-      <td><span class="tag ${l.active?'tag-on':'tag-off'}">${l.active?t('on'):t('off')}</span></td>
-      <td style="min-width:140px;">
+      <td class="c-chk"><input type="checkbox" value="${l.uuid}" ${check} onchange="toggleSelectUid('${l.uuid}')"></td>
+      <td class="c-name" style="font-weight:600">${labelDisplay}</td>
+      <td class="c-type" data-label="${L('Type','نوع')}"><span class="tag tag-vless">VLESS</span> ${l.encryption&&l.encryption!=='none'?`<span class="tag" style="opacity:.6;font-size:.65em;">${l.encryption}</span>`:''} ${obTag(l.outbound)}</td>
+      <td class="c-usage" data-label="${L('Usage','مصرف')}" style="white-space:nowrap"><div class="pill"><span class="pill-used">${fmtB(u)}</span><div class="pill-bar"><div class="pill-fill" style="width:${pct}%;background:${col}"></div></div><span>${fmtLim(lim)}</span></div></td>
+      <td class="c-conns" data-label="${L('Conns','اتصالات')}">${cc}/${mc2||'∞'}</td>
+      <td class="c-live" data-label="${L('Connections','اتصالات فعال')}" style="max-width:180px;">${fmtConns(l.uuid)}</td>
+      <td class="c-exp" data-label="${L('Expiry','انقضا')}" style="color:${ec}">${ex}</td>
+      <td class="c-status" data-label="${L('Status','وضعیت')}"><span class="tag ${l.active?'tag-on':'tag-off'}">${l.active?t('on'):t('off')}</span></td>
+      <td class="c-act" style="min-width:140px;">
         <div style="display:flex; flex-direction:column; gap:6px; align-items:center;">
           <button class="toggle ${l.active?'on':''}" data-uid="${l.uuid}" onclick="togLink(this)"></button>
           <div style="display:flex; flex-wrap:wrap; gap:4px; justify-content:center;">

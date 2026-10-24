@@ -252,14 +252,16 @@ Changing the password from **Settings** afterwards takes effect immediately and 
 database — just don't leave a stale `ADMIN_PASSWORD` variable set to the old value, since that
 will overwrite your in-panel change on the next redeploy.
 
-#### Best Endpoint Finder
+#### Best Config (Aether)
 
-The **Best Endpoint** tab measures latency from the panel server to any list of IPs, hostnames or
-CIDR ranges (a random sample is taken from each range) and ranks them by average latency, jitter and
-packet loss. Test types: TCP connect, TLS handshake (with a chosen SNI) and an HTTP trace that also
-shows the Cloudflare colo/country. One click loads the Cloudflare ranges or your Clean IP list, and
-**Add best 5 to Clean IP** copies the winners into the Clean IP tab. Private, loopback and reserved
-addresses are refused. Only one scan runs at a time (max 300 targets, 50 in parallel).
+The **Best Config** tab runs every selected protocol × scan-mode combination of the Aether tunnel on
+the panel server, measures the real HTTPS latency through each tunnel (several attempts per
+combination) and shows a ranked list in ms. **Save the winner and connect with it** is on by default:
+the winner is stored both as the saved tunnel options and as the last known-good preset. While the
+test runs the tunnel is cut and reconnected, the watchdog stands aside and Start / Restart are
+rejected; **Cancel** or **Stop** returns the tunnel to its previous state.
+API: `GET /api/aether/sweep`, `POST /api/aether/sweep/start`, `POST /api/aether/sweep/cancel`.
+The older `/api/endpoints/*` scanner API is still available (it just has no tab any more).
 
 ### Health check
 

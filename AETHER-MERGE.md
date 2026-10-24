@@ -29,7 +29,8 @@ SE7O-SNA پایه است. هر اتصال کاربران پنل (WS) حالا ب
 3. «Exit mode» را روی `auto` یا `aether` بگذارید و Save.
 
 ## پورت نشده / محدودیت‌ها
-- بخش‌های ASiRi که پورت **نشدند**: «بهترین کانفیگ» (sweep)، gateway‌های SOCKS5/HTTP/Shadowsocks،
+- «بهترین کانفیگ» (sweep) حالا پورت شده و تب **Best Config** است (`/api/aether/sweep/*`).
+- بخش‌های ASiRi که پورت **نشدند**: gateway‌های SOCKS5/HTTP/Shadowsocks،
   ورودی Trojan، رله‌ی TCP برای Railway، و watchdog مبتنی بر probe خارجی (فقط probe داخلی از SOCKS5).
 - Aether فقط TCP است؛ UDP از مسیر Aether کار نمی‌کند.
 - با `aether` حالت fail-closed، هنگام scan/connect اولیه اتصال کاربران رد می‌شود.
