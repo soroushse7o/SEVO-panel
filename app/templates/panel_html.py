@@ -11,11 +11,11 @@ PANEL_HTML = r"""<!DOCTYPE html>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --primary:#ff9d1c; --primary-dim:rgba(255,157,28,0.14);
-  --bg:#0c0705; --bg2:#150c08; --bg3:#1e120b;
-  --surface:rgba(24,14,9,0.85); --surface2:rgba(32,19,12,0.9); --surface3:rgba(42,25,16,0.8);
-  --border:rgba(255,157,28,0.10); --border2:rgba(255,140,0,0.25);
-  --text:#f2e4d8; --text2:#c9ab8e; --text3:#8a6f5c;
+  --primary:#22d3ee; --primary-dim:rgba(34,211,238,0.14);
+  --bg:#0b1120; --bg2:#111827; --bg3:#1e293b;
+  --surface:rgba(17,24,39,0.85); --surface2:rgba(30,41,59,0.9); --surface3:rgba(51,65,85,0.8);
+  --border:rgba(34,211,238,0.12); --border2:rgba(34,211,238,0.30);
+  --text:#e2e8f0; --text2:#94a3b8; --text3:#64748b;
   --green:#4ade80; --red:#f87171; --yellow:#fbbf24;
   --header-h:60px; --footer-h:50px;
 }
@@ -251,12 +251,10 @@ textarea.fi{resize:vertical;min-height:90px;}
         <nav class="header-nav" id="mainNav">
           <button class="nav-link active" data-page="dashboard"><svg class="ic"><use href="#ic-dashboard"/></svg> <span data-en="Dashboard" data-fa="داشبورد">Dashboard</span></button>
           <button class="nav-link" data-page="inbounds"><svg class="ic"><use href="#ic-inbounds"/></svg> <span data-en="Inbounds" data-fa="اینباندها">Inbounds</span></button>
-          <button class="nav-link" data-page="outbounds"><svg class="ic"><use href="#ic-transports"/></svg> <span data-en="Outbounds" data-fa="اوتباندها">Outbounds</span></button>
           <button class="nav-link" data-page="addresses"><svg class="ic"><use href="#ic-link"/></svg> <span data-en="Clean IP" data-fa="آی‌پی تمیز">Clean IP</span></button>
           <button class="nav-link" data-page="logs"><svg class="ic"><use href="#ic-logs"/></svg> <span data-en="Logs" data-fa="لاگ‌ها">Logs</span></button>
           <button class="nav-link" data-page="telegram"><svg class="ic"><use href="#ic-telegram"/></svg> <span data-en="Telegram" data-fa="تلگرام">Telegram</span></button>
           <button class="nav-link" data-page="mtproxy"><svg class="ic"><use href="#ic-bolt"/></svg> <span data-en="MTProxy" data-fa="ام‌تی پراکسی">MTProxy</span></button>
-          <button class="nav-link" data-page="clients"><svg class="ic"><use href="#ic-users"/></svg> <span data-en="Clients" data-fa="کاربران">Clients</span></button>
           <button class="nav-link" data-page="settings"><svg class="ic"><use href="#ic-settings"/></svg> <span data-en="Settings" data-fa="تنظیمات">Settings</span></button>
         </nav>
       </div>
@@ -334,37 +332,6 @@ textarea.fi{resize:vertical;min-height:90px;}
         <div class="tbl-wrap"><table class="tbl" id="inbound-table"><thead><tr><th><input type="checkbox" id="select-all" onchange="toggleSelectAll()"></th><th data-sort="label" onclick="sortLinks('label')"><span data-en="Name" data-fa="نام">Name</span> ↕</th><th data-en="Type" data-fa="نوع">Type</th><th data-sort="used_bytes" onclick="sortLinks('used_bytes')"><span data-en="Usage" data-fa="مصرف">Usage</span> ↕</th><th data-en="Conns" data-fa="اتصالات">Conns</th><th data-en="Connections" data-fa="اتصالات فعال">Connections</th><th data-sort="expires_at" onclick="sortLinks('expires_at')"><span data-en="Expiry" data-fa="انقضا">Expiry</span> ↕</th><th data-en="Status" data-fa="وضعیت">Status</th><th data-en="Actions" data-fa="عملیات">Actions</th></tr></thead><tbody id="ltb"></tbody></table></div>
         <div class="empty" id="lempty" style="display:none;padding:30px;">No inbounds found</div>
       </div>
-    </section>
-    <section class="page" id="page-outbounds">
-      <div class="page-header">
-        <div><div class="page-title" data-en="Outbounds" data-fa="اوتباندها">Outbounds</div><div class="page-sub" data-en="Transport & config management" data-fa="مدیریت ترنسپورت‌ها و تنظیمات کانفیگ">Transport & config management</div></div>
-        <button class="btn btn-primary" onclick="saveOutboundConfig()" data-en="Save Config" data-fa="ذخیره تنظیمات">Save Config</button>
-      </div>
-      <div class="card" style="margin-bottom:16px;">
-        <div class="page-sub" data-en="Default outbound settings (applied to new links)" data-fa="تنظیمات پیش‌فرض اوتباند (روی لینک‌های جدید اعمال می‌شود)">Default outbound settings</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:10px;">
-          <div class="fg"><label class="fl">Fingerprint</label>
-            <select class="fs" id="ob_dfp">
-              <option value="chrome">chrome</option><option value="firefox">firefox</option>
-              <option value="safari">safari</option><option value="ios">ios</option>
-              <option value="edge">edge</option><option value="opera">opera</option>
-              <option value="android">android</option><option value="random">random</option>
-              <option value="none">none</option>
-            </select>
-          </div>
-          <div class="fg"><label class="fl">SNI</label><input class="fi" id="ob_dsni" placeholder="(domain)"></div>
-          <div class="fg"><label class="fl">Host</label><input class="fi" id="ob_dhost" placeholder="(domain)"></div>
-          <div class="fg"><label class="fl">ALPN</label><input class="fi" id="ob_dalpn" placeholder="http/1.1"></div>
-        </div>
-        <hr style="border-color:var(--border);margin:12px 0;">
-        <div class="page-sub" data-en="Transport paths (use {uuid} placeholder)" data-fa="مسیرهای ترنسپورت (از {uuid} استفاده کنید)">Transport paths</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:10px;">
-          <div class="fg"><label class="fl">WS Path</label><input class="fi" id="ob_ws_path" placeholder="/ws/{uuid}"></div>
-          <div class="fg"><label class="fl">XHTTP Path</label><input class="fi" id="ob_xhttp_path" placeholder="/xhttp1/{uuid}"></div>
-          <div class="fg"><label class="fl">HTTP Path</label><input class="fi" id="ob_http_path" placeholder="/http/{uuid}"></div>
-        </div>
-      </div>
-      <div class="card-grid" id="transport-grid"></div>
     </section>
     <section class="page" id="page-addresses">
       <div class="page-header"><div class="page-title" data-en="Clean IP" data-fa="آی‌پی تمیز">Clean IP</div></div>
@@ -583,12 +550,10 @@ example.com"></textarea></div>
     <div class="nav-items">
       <div class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard')"><span class="nav-icon"><svg class="ic"><use href="#ic-dashboard"/></svg></span><span data-en="Home" data-fa="خانه">Home</span></div>
       <div class="nav-item" data-page="inbounds" onclick="switchPage('inbounds')"><span class="nav-icon"><svg class="ic"><use href="#ic-inbounds"/></svg></span><span data-en="Inbound" data-fa="اینباند">Inbound</span></div>
-      <div class="nav-item" data-page="outbounds" onclick="switchPage('outbounds')"><span class="nav-icon"><svg class="ic"><use href="#ic-transports"/></svg></span><span data-en="Outbound" data-fa="اوتباند">Outbound</span></div>
       <div class="nav-item" data-page="addresses" onclick="switchPage('addresses')"><span class="nav-icon"><svg class="ic"><use href="#ic-link"/></svg></span><span data-en="Clean IP" data-fa="آی‌پی تمیز">Clean IP</span></div>
       <div class="nav-item" data-page="logs" onclick="switchPage('logs')"><span class="nav-icon"><svg class="ic"><use href="#ic-logs"/></svg></span><span data-en="Logs" data-fa="لاگ">Logs</span></div>
       <div class="nav-item" data-page="telegram" onclick="switchPage('telegram')"><span class="nav-icon"><svg class="ic"><use href="#ic-telegram"/></svg></span><span data-en="Bot" data-fa="ربات">Bot</span></div>
       <div class="nav-item" data-page="mtproxy" onclick="switchPage('mtproxy')"><span class="nav-icon"><svg class="ic"><use href="#ic-bolt"/></svg></span><span data-en="MTProxy" data-fa="پراکسی">MTProxy</span></div>
-      <div class="nav-item" data-page="clients" onclick="switchPage('clients')"><span class="nav-icon"><svg class="ic"><use href="#ic-users"/></svg></span><span data-en="Clients" data-fa="کاربران">Clients</span></div>
       <div class="nav-item" data-page="settings" onclick="switchPage('settings')"><span class="nav-icon"><svg class="ic"><use href="#ic-settings"/></svg></span><span data-en="Settings" data-fa="تنظیمات">Settings</span></div>
     </div>
   </nav>
