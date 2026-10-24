@@ -4,6 +4,8 @@
 
 # SE7O-SNA Panel v3
 
+   [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/self-hosted-panel?referralCode=6Eu2Xl&utm_medium=integration&utm_source=template&utm_campaign=generic)
+
 **A self-hosted subscription panel for VLESS over WebSocket, XHTTP, and raw TCP.**
 
 Modular Python application · FastAPI · SQLite or PostgreSQL
