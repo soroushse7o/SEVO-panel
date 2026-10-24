@@ -28,7 +28,6 @@ from app.services.keepalive import simple_loop, advanced_loop
 from app.services.telegram import report_loop
 from app.services.links import auto_disable_expired
 from app.services import mtproxy as mtproxy_service
-from app.services import raw_tcp as raw_tcp_service
 from app.services import aether as aether_service
 
 LOGGING_CONFIG = {
@@ -164,14 +163,12 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(cleanup_link_cache_loop())
 
     await mtproxy_service.start()
-    await raw_tcp_service.start()
     await aether_service.init()
 
     logger.info("SE7O-SNA Panel v3.0 started")
     yield
     await aether_service.shutdown()
     await mtproxy_service.stop()
-    await raw_tcp_service.stop()
     await close_db()
 
 

@@ -66,7 +66,7 @@ async def user_dashboard(uid: str, request: Request):
             "custom_host": link.get("custom_host", ""),
             "custom_fp": link.get("custom_fp", "chrome"),
             "fragment": link.get("fragment", ""),
-            "transport": link.get("transport", "ws"),
+            "transport": "ws",
         })
     except LinkConfigError:
         vless_link = ""
@@ -113,7 +113,7 @@ async def subscription_endpoint(uid: str, request: Request):
         "custom_host": link.get("custom_host", ""),
         "custom_fp": link.get("custom_fp", "chrome"),
         "fragment": link.get("fragment", ""),
-        "transport": link.get("transport", "ws"),
+        "transport": "ws",
     }
 
     status = "active"
@@ -126,10 +126,8 @@ async def subscription_endpoint(uid: str, request: Request):
         content = await generate_subscription_content(link, uid, addresses, extra, status)
     except LinkConfigError as e:
         # Don't 500 the whole subscription URL (clients poll this
-        # periodically) just because e.g. this link is set to tcp and
-        # RAW_TCP_PUBLIC_HOST/PORT aren't configured yet -- return a
-        # single-line remark explaining it instead so at least the
-        # subscription still loads.
+        # periodically) -- return a single-line remark explaining the
+        # problem instead so at least the subscription still loads.
         content = f"# SE7O-SNA: {e}"
     encoded = encode_subscription(content)
 

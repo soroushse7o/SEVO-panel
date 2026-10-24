@@ -6,7 +6,7 @@
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/self-hosted-panel?utm_medium=integration&utm_source=template&utm_campaign=generic)
 
-**A self-hosted subscription panel for VLESS over WebSocket, XHTTP, HTTP, and raw TCP, with an optional Aether tunnel exit.**
+**A self-hosted subscription panel for VLESS over WebSocket, with an optional Aether tunnel exit.**
 
 Modular Python application · FastAPI · SQLite or PostgreSQL
 
@@ -59,26 +59,20 @@ Every inbound has a subscription endpoint at `/sub/{uid}` and a public page at `
 showing status, data usage, expiry, a QR code, and one-tap copy buttons for the subscription and
 single VLESS links — shareable with end users without granting panel access.
 
-**Transports**
-Four transports are available. WebSocket (default), XHTTP, and HTTP all run on the platform's
-HTTPS port, so no extra port is needed. A plain `type=tcp` VLESS listener (no TLS/WS framing) is
-optional and needs its own TCP proxy (see [Enable extra transports](#5-enable-extra-transports-optional)).
+**Transport**
+WebSocket is the only transport. It runs on the platform's HTTPS port, so no extra port is needed.
 
 | Transport | Endpoint | Notes |
 |-----------|----------|-------|
-| WebSocket | `/ws/{uuid}` | Default and most compatible. |
-| XHTTP, stream-one | `/xhttp1/{uuid}` | Single full-duplex POST (Xray splithttp). |
-| XHTTP, stream-up | `/xhttp/{uuid}/{session_id}` | Separate upload (POST) and download (GET) on one session. |
-| HTTP | `/http/{uuid}` | Plain HTTP/1.1 request/response tunnel. |
-| Raw TCP | `RAW_TCP_PORT` | Optional, separate TCP proxy, no TLS. |
+| WebSocket | `/ws/{uuid}` | The only supported transport. |
 
-Default paths, TLS fingerprint, SNI, host, ALPN, and XHTTP mode can be changed through the
-outbound settings (`/api/outbound-config`).
+Default path, TLS fingerprint, SNI, host, and ALPN can be changed through the outbound settings
+(`/api/outbound-config`).
 
 **Aether tunnel exit**
 The **Aether** tab starts, stops, and restarts the Aether tunnel client and shows its live phase,
 gateway, exit, and logs. Aether exposes a local SOCKS5 proxy on `127.0.0.1` (port `1819` by
-default), and the panel can route every user connection — WebSocket, XHTTP, HTTP, and raw TCP —
+default), and the panel can route every user connection
 through it. Details are in [Aether tunnel](#6-aether-tunnel-optional) below.
 
 **Telegram MTProxy**
@@ -131,11 +125,6 @@ with comments is also in [`SE7O-SNA-config.toml`](SE7O-SNA-config.toml).
 | `MTPROXY_CONCURRENCY` | Optional | `4096` | Maximum concurrent MTProxy connections. |
 | `MTPROXY_PUBLIC_HOST` | Optional | `shuttle.proxy.rlwy.net` | Override the public host if it is not detected automatically. |
 | `MTPROXY_PUBLIC_PORT` | Optional | `15140` | Override the public port. |
-| `XHTTP_ENABLED` | Optional | `true` | Enable the XHTTP transport, served on the same HTTPS port. Defaults to `true`. |
-| `RAW_TCP_ENABLED` | Optional | `false` | Enable a second, plain `type=tcp` VLESS listener with no TLS/WS framing. Needs its own TCP proxy — see below. |
-| `RAW_TCP_PORT` | Optional | `8080` | Port the raw-TCP listener binds to *inside* the container. |
-| `RAW_TCP_PUBLIC_HOST` | Optional | `shuttle.proxy.rlwy.net` | Public host for the raw-TCP listener. |
-| `RAW_TCP_PUBLIC_PORT` | Optional | `15141` | Public port for the raw-TCP listener. |
 
 The Aether-related variables are all optional and listed in the
 [Aether section](#6-aether-tunnel-optional).
@@ -170,19 +159,7 @@ from the internet, so it never appears in the link. Until a TCP proxy exists the
 warning and a provisional address. If the variables are ever missing, set `MTPROXY_PUBLIC_HOST`
 and `MTPROXY_PUBLIC_PORT` yourself.
 
-### 5. Enable extra transports (optional)
-
-WebSocket, XHTTP, and HTTP work out of the box on the same HTTPS port — nothing to configure
-beyond `XHTTP_ENABLED=true` (the default). Generate a link with transport `xhttp` or `http` from
-the dashboard the same way you generate a `ws` link.
-
-The raw-TCP transport is a second listener with its own port, so it needs the same kind of TCP
-proxy as MTProxy:
-
-1. Set `RAW_TCP_ENABLED=true` and, if you don't want the default, `RAW_TCP_PORT`.
-2. In **Networking → TCP Proxy**, add a second proxy pointed at that internal port.
-3. Put the public host and port Railway gives you into `RAW_TCP_PUBLIC_HOST` and
-   `RAW_TCP_PUBLIC_PORT`.
+### 5. Second public domain (optional)
 
 **Railway TCP proxy budget.** A Railway project currently allows up to 3 TCP proxies and 2 public
 domains per service. This project uses them like this:
@@ -190,7 +167,7 @@ domains per service. This project uses them like this:
 | # | Used by | Internal port | Set from Railway's output |
 |---|---|---|---|
 | 1 | MTProxy | `MTPROXY_PORT` (443) | `MTPROXY_PUBLIC_HOST` / `MTPROXY_PUBLIC_PORT` |
-| 2 | Raw-TCP VLESS | `RAW_TCP_PORT` (8080) | `RAW_TCP_PUBLIC_HOST` / `RAW_TCP_PUBLIC_PORT` |
+| 2 | *free* | — | not used by the panel today |
 | 3 | *free* | — | not used by the panel today |
 
 Aether's SOCKS5 listener binds to `127.0.0.1` only, so it needs no TCP proxy.
@@ -198,9 +175,9 @@ Aether's SOCKS5 listener binds to `127.0.0.1` only, so it needs no TCP proxy.
 **Using the second public domain.** Railway can also give a service a second public HTTP domain
 (Settings → Networking → Public Networking → "+ Domain"). No new code is needed — every link can
 carry its own `Host` / `SNI` (Advanced Options, or `custom_host` / `custom_sni` via the API). Point
-new `ws` or `xhttp` links at the second domain by filling those two fields with it; the panel
-serves both domains from the same process, so if one domain gets blocked you can immediately hand
-out links on the other without redeploying anything.
+new `ws` links at the second domain by filling those two fields with it; the panel serves both
+domains from the same process, so if one domain gets blocked you can immediately hand out links on
+the other without redeploying anything.
 
 ### 6. Aether tunnel (optional)
 
@@ -275,13 +252,12 @@ will overwrite your in-panel change on the next redeploy.
 | `app/utils.py` | Pure formatting and validation helpers. |
 | `app/models.py` | Pydantic request models. |
 | `app/routes/` | HTTP and WebSocket endpoints, grouped by domain (auth, links, addresses, stats, settings, subscription, backup, mtproxy, panel, transports, aether). |
-| `app/routes/tunnel.py` | WebSocket, XHTTP, and HTTP VLESS tunnel endpoints — the core proxy engine. |
+| `app/routes/tunnel.py` | WebSocket VLESS tunnel endpoint — the core proxy engine. |
 | `app/routes/aether.py` | Aether control API under `/api/aether/*`. |
 | `app/services/` | Background loops and helpers: traffic, keep-alive, Telegram, link expiry. |
 | `app/services/mtproxy.py` | MTProto proxy supervisor, secret handling, link building. |
-| `app/services/raw_tcp.py` | Raw-TCP VLESS listener (`type=tcp`), independent of the main HTTP port. |
 | `app/services/aether.py` | Aether process manager: install, start/stop, log parsing, watchdog. |
-| `app/services/upstream.py` | Single outbound connector used by every transport (direct or via Aether SOCKS5). |
+| `app/services/upstream.py` | Single outbound connector used by the tunnel (direct or via Aether SOCKS5). |
 | `app/templates/panel_html.py` | The embedded single-page admin frontend. |
 | `app/templates/user_html.py` | The public per-user subscription page. |
 | `app/static/img/`, `img/` | Logo and favicon assets. |

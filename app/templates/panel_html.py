@@ -192,7 +192,6 @@ textarea.fi{resize:vertical;min-height:90px;}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="ic-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></symbol>
   <symbol id="ic-inbounds" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12" y2="20"/><circle cx="12" cy="20" r="1"/></symbol>
-  <symbol id="ic-transports" viewBox="0 0 24 24"><path d="M3 12h18"/><path d="M3 6h18"/><path d="M3 18h18"/><circle cx="7" cy="12" r="1.5"/><circle cx="14" cy="6" r="1.5"/><circle cx="11" cy="18" r="1.5"/></symbol>
   <symbol id="ic-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
   <symbol id="ic-logs" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></symbol>
   <symbol id="ic-telegram" viewBox="0 0 24 24"><path d="M21.5 3.5 3 11l5 2 2 6 3-4 5 4z"/><path d="M21.5 3.5 9 13"/></symbol>
@@ -667,19 +666,6 @@ example.com"></textarea></div>
     <div class="fg"><button class="adv-toggle" onclick="toggleAdv('adv-create')">▼ <span data-en="Advanced Options" data-fa="گزینه‌های پیشرفته">Advanced Options</span></button>
       <div id="adv-create" class="adv-section">
         <div class="fg"><label class="fl" data-en="Profile" data-fa="پروفایل">Profile</label><select class="fs" id="ares-profile" onchange="applyProfileCreate()"><option value="">Custom</option><option value="default">Default</option><option value="youtube">YouTube</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="tiktok">TikTok</option><option value="whatsapp">WhatsApp</option><option value="telegram">Telegram</option><option value="netflix">Netflix</option><option value="spotify">Spotify</option><option value="google">Google</option></select></div>
-        <div class="fg"><label class="fl" data-en="Transport" data-fa="ترنسپورت">Transport</label>
-          <select class="fs" id="atransport" onchange="onTransportChange('a')">
-            <option value="ws" selected>WebSocket (ws)</option>
-            <option value="xhttp">XHTTP / splithttp (xhttp)</option>
-            <option value="http">HTTP (http)</option>
-            <option value="tcp">Raw TCP (tcp)</option>
-          </select>
-        </div>
-        <div class="fg" id="atcp-fields" style="display:none;">
-          <label class="fl" data-en="Raw TCP public host:port" data-fa="هاست:پورت عمومی TCP">Raw TCP public host:port</label>
-          <input class="fi" id="atcpinfo" placeholder="set RAW_TCP_PUBLIC_HOST / RAW_TCP_PUBLIC_PORT in config" disabled>
-          <span style="font-size:0.78rem;color:var(--text3);" data-en="Raw TCP needs RAW_TCP_ENABLED=true and RAW_TCP_PUBLIC_HOST/PORT configured on the server." data-fa="Raw TCP نیازمند RAW_TCP_ENABLED=true و تنظیم RAW_TCP_PUBLIC_HOST/PORT روی سرور است.">Raw TCP needs RAW_TCP_ENABLED=true and RAW_TCP_PUBLIC_HOST/PORT configured on the server.</span>
-        </div>
         <div class="fg"><label class="fl" data-en="Encryption" data-fa="رمزنگاری">Encryption</label>
           <select class="fs" id="aenc">
             <option value="none">none (default)</option>
@@ -754,19 +740,6 @@ example.com"></textarea></div>
     <div class="fg"><button class="adv-toggle" onclick="toggleAdv('adv-edit')">▼ <span data-en="Advanced Options" data-fa="گزینه‌های پیشرفته">Advanced Options</span></button>
       <div id="adv-edit" class="adv-section">
         <div class="fg"><label class="fl" data-en="Profile" data-fa="پروفایل">Profile</label><select class="fs" id="eres-profile" onchange="applyProfile()"><option value="">Custom</option><option value="default">Default</option><option value="youtube">YouTube</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="tiktok">TikTok</option><option value="whatsapp">WhatsApp</option><option value="telegram">Telegram</option><option value="netflix">Netflix</option><option value="spotify">Spotify</option><option value="google">Google</option></select></div>
-        <div class="fg"><label class="fl" data-en="Transport" data-fa="ترنسپورت">Transport</label>
-          <select class="fs" id="etransport" onchange="onTransportChange('e')">
-            <option value="ws">WebSocket (ws)</option>
-            <option value="xhttp">XHTTP / splithttp (xhttp)</option>
-            <option value="http">HTTP (http)</option>
-            <option value="tcp">Raw TCP (tcp)</option>
-          </select>
-        </div>
-        <div class="fg" id="etcp-fields" style="display:none;">
-          <label class="fl" data-en="Raw TCP public host:port" data-fa="هاست:پورت عمومی TCP">Raw TCP public host:port</label>
-          <input class="fi" id="etcpinfo" placeholder="set RAW_TCP_PUBLIC_HOST / RAW_TCP_PUBLIC_PORT in config" disabled>
-          <span style="font-size:0.78rem;color:var(--text3);" data-en="Raw TCP needs RAW_TCP_ENABLED=true and RAW_TCP_PUBLIC_HOST/PORT configured on the server." data-fa="Raw TCP نیازمند RAW_TCP_ENABLED=true و تنظیم RAW_TCP_PUBLIC_HOST/PORT روی سرور است.">Raw TCP needs RAW_TCP_ENABLED=true and RAW_TCP_PUBLIC_HOST/PORT configured on the server.</span>
-        </div>
         <div class="fg"><label class="fl" data-en="Encryption" data-fa="رمزنگاری">Encryption</label>
           <select class="fs" id="eenc">
             <option value="none">none (default)</option>
@@ -802,8 +775,6 @@ example.com"></textarea></div>
           </select>
         </div>
       </div>
-      <hr style="border-color:var(--border);margin:12px 0;">
-      <button class="btn btn-outline" onclick="addTransportToUser()" data-en="+ Add transport to this user" data-fa="+ افزودن ترنسپورت به این کاربر">+ Add transport to this user</button>
     </div>
     <div class="fg"><label class="fl" data-en="Traffic Limit (GB)" data-fa="محدودیت ترافیک (گیگابایت)">Traffic Limit (GB)</label><input class="fi" type="number" id="el" min="0" step="0.1" placeholder="0 = Unlimited"></div>
     <div class="fg"><label class="fl" data-en="Max Connections" data-fa="حداکثر اتصالات">Max Connections</label><input class="fi" type="number" id="ec" min="0" placeholder="0 = Unlimited"></div>
@@ -1158,16 +1129,13 @@ function startPanelClock() {
 async function doLogin(){const u=$m('login-user').value.trim();const pw=$m('login-pw').value;$m('login-err').style.display='none';try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:pw})});if(r.ok){$m('login-pw').value='';showDashboard();}else $m('login-err').style.display='block';}catch{console.error('Login error');$m('login-err').style.display='block';}}
 async function doLogout(){await fetch('/api/logout',{method:'POST'});showLogin();}
 document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.addEventListener('click',()=>{switchPage(el.dataset.page);document.getElementById('mainNav').classList.remove('open');}));
-function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$m('page-'+id).classList.add('active');if(id==='mtproxy')loadMtproxy();if(id==='outbounds')loadOutbounds();if(id==='aether')startAether();else stopAetherPoll();document.querySelectorAll('.nav-link').forEach(n=>n.classList.toggle('active',n.dataset.page===id));document.querySelectorAll('.mobile-nav .nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===id));}
+function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$m('page-'+id).classList.add('active');if(id==='mtproxy')loadMtproxy();if(id==='aether')startAether();else stopAetherPoll();document.querySelectorAll('.nav-link').forEach(n=>n.classList.toggle('active',n.dataset.page===id));document.querySelectorAll('.mobile-nav .nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===id));}
 document.getElementById('hamburger-btn')?.addEventListener('click',function(e){e.stopPropagation();document.getElementById('mainNav').classList.toggle('open');});
 function toast(msg,err=false){const t=$m('toast');t.textContent=msg;t.className='toast'+(err?' err':'')+' show';clearTimeout(t._hide);t._hide=setTimeout(()=>t.classList.remove('show'),3000);}
 function fmtB(b){if(!b||b===0)return'0 B';return b>=1073741824?(b/1073741824).toFixed(2)+' GB':b>=1048576?(b/1048576).toFixed(2)+' MB':(b/1024).toFixed(1)+' KB';}
 function fmtLim(b){if(!b||b===0)return'∞';const g=b/1073741824;return(g%1===0?g.toFixed(0):g.toFixed(1))+' GB';}
 function fmtExp(ea){if(!ea||ea===0)return'∞';const d=new Date(ea)-new Date();if(d<=0)return'Expired';const days=Math.floor(d/86400000);if(days>0)return days+'d';const hours=Math.floor(d/3600000);if(hours>0)return hours+'h';return Math.floor(d/60000)+'m';}
 function fmtConns(uuid){const list=liveConns[uuid]||[];if(!list.length)return '<span style="color:var(--text3)">—</span>';return list.map(c=>`<div style="font-size:0.76rem;line-height:1.5;">🌐 ${esc(c.ip)}</div>`).join('');}
-function fillOutboundForm(cfg){if(!cfg)return;const set=(id,v)=>{const e=$m(id);if(e&&v!==undefined)e.value=v;};set('ob_dfp',cfg.ob_default_fp||'chrome');set('ob_dsni',cfg.ob_default_sni||'');set('ob_dhost',cfg.ob_default_host||'');set('ob_dalpn',cfg.ob_default_alpn||'http/1.1');set('ob_ws_path',cfg.ob_ws_path||'/ws/{uuid}');set('ob_xhttp_path',cfg.ob_xhttp_path||'/xhttp1/{uuid}');set('ob_http_path',cfg.ob_http_path||'/http/{uuid}');}
-async function loadOutbounds(){try{const [t,r]=await Promise.all([fetch('/api/transports'),fetch('/api/outbound-config')]);if(!t.ok)return;const d=await t.json();const cfg=await r.json();const grid=$m('transport-grid');const icons={ws:'🌐',xhttp:'⚡',http:'📡',tcp:'🔌'};const paths={ws:cfg.ob_ws_path||'/ws/{uuid}',xhttp:cfg.ob_xhttp_path||'/xhttp1/{uuid}',http:cfg.ob_http_path||'/http/{uuid}'};let html='';for(const [key,tr] of Object.entries(d)){const status=tr.enabled?'<span style="color:var(--ok)">● Active</span>':'<span style="color:var(--text3)">● Off</span>';const port=tr.port?(':'+tr.port):'';const host=tr.host?(' → '+tr.host+port):'';const pathVal=paths[key]||tr.path_template||'-';html+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:1.1rem;font-weight:700;">${icons[key]||'•'} ${tr.name}</div><div>${status}</div></div><div style="font-size:0.82rem;color:var(--text3);margin:8px 0;">${tr.description||''}</div><div style="font-size:0.85rem;margin-bottom:6px;"><div>Security: <code>${tr.security}</code></div><div>Path: <code>${pathVal}</code></div><div>Endpoint: <code>${tr.port?'port '+tr.port:''}${host}</code></div>${tr.mode?`<div>Mode: <code>${tr.mode}</code></div>`:''}</div></div>`;}grid.innerHTML=html;fillOutboundForm(cfg);}catch(e){console.error('loadOutbounds',e);}}
-async function saveOutboundConfig(){const body={ob_default_fp:$m('ob_dfp').value,ob_default_sni:$m('ob_dsni').value.trim(),ob_default_host:$m('ob_dhost').value.trim(),ob_default_alpn:$m('ob_dalpn').value.trim(),ob_ws_path:$m('ob_ws_path').value.trim()||'/ws/{uuid}',ob_xhttp_path:$m('ob_xhttp_path').value.trim()||'/xhttp1/{uuid}',ob_http_path:$m('ob_http_path').value.trim()||'/http/{uuid}'};try{const r=await fetch('/api/outbound-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(r.ok)toast('Outbound config saved');else toast('Error',true);}catch{toast('Error',true);}}
 let aeTimer=null,aeFilled=false;
 function aeEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 async function aeApi(path,body){try{const r=await fetch('/api/aether/'+path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});if(r.status===401){showLogin();return null;}let d={};try{d=await r.json();}catch(e){}if(!r.ok||d.ok===false){toast(d.error||('Error '+r.status),true);return null;}return d;}catch(e){toast('Error',true);return null;}}
@@ -1194,7 +1162,7 @@ function renderLinks(links){
     return`<tr>
       <td><input type="checkbox" value="${l.uuid}" ${check} onchange="toggleSelectUid('${l.uuid}')"></td>
       <td style="font-weight:600">${labelDisplay}</td>
-      <td><span class="tag tag-vless">VLESS</span> <span class="tag" style="opacity:.75;font-size:.7em;">${(l.transport||'ws').toUpperCase()}</span> ${l.encryption&&l.encryption!=='none'?`<span class="tag" style="opacity:.6;font-size:.65em;">${l.encryption}</span>`:''}</td>
+      <td><span class="tag tag-vless">VLESS</span> ${l.encryption&&l.encryption!=='none'?`<span class="tag" style="opacity:.6;font-size:.65em;">${l.encryption}</span>`:''}</td>
       <td style="white-space:nowrap"><div class="pill"><span class="pill-used">${fmtB(u)}</span><div class="pill-bar"><div class="pill-fill" style="width:${pct}%;background:${col}"></div></div><span>${fmtLim(lim)}</span></div></td>
       <td>${cc}/${mc2||'∞'}</td>
       <td style="max-width:180px;">${fmtConns(l.uuid)}</td>
@@ -1262,7 +1230,6 @@ async function createLink(){
     custom_path:$m('ap').value.trim(),custom_sni:$m('asni').value.trim(),
     custom_host:$m('ahost').value.trim(),custom_fp:$m('afp').value.trim(),
     color:$m('alink-color')?.value||'#39ff14', flag: flagCode, fragment: fragment,
-    transport: $m('atransport')?.value || 'ws',
     encryption: $m('aenc')?.value || 'none'
   };
   try{
@@ -1276,9 +1243,7 @@ function showEditMo(uid){
   $m('el').value=l.limit_bytes>0?(l.limit_bytes/1073741824):''; $m('ec').value=l.max_connections||''; $m('ed').value='';
   $m('ep').value=l.custom_path||''; $m('esni').value=l.custom_sni||''; $m('ehost').value=l.custom_host||''; $m('efp').value=l.custom_fp||'chrome';
   $m('efrag').value=l.fragment||'';
-  if($m('etransport')) $m('etransport').value = l.transport || 'ws';
   if($m('eenc')) $m('eenc').value = l.encryption || 'none';
-  onTransportChange('e');
   $m('e-color').value=l.color||'#39ff14';
   const flag = l.flag || '';
   $m('flag-code-edit').value = flag;
@@ -1305,7 +1270,6 @@ async function saveEdit(){
     custom_path:$m('ep').value.trim(),custom_sni:$m('esni').value.trim(),
     custom_host:$m('ehost').value.trim(),custom_fp:$m('efp').value.trim(),
     color:$m('e-color').value, flag: flagCode, fragment: fragment,
-    transport: $m('etransport')?.value || 'ws',
     encryption: $m('eenc')?.value || 'none'
   };
   if(days)body.days_valid=days;
@@ -1315,8 +1279,6 @@ async function saveEdit(){
   }catch{toast('Error',true);}
 }
 async function resetTraf(){const uid=$m('eu').value;if(!confirm('Reset?'))return;try{await fetch('/api/links/'+uid,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({reset_usage:true})});toast('Reset');loadLinks();}catch{toast('Error',true);}}
-async function addTransportToUser(){const uid=$m('eu').value;if(!uid)return;const t=$m('etransport')?.value||'ws';const enc=$m('eenc')?.value||'none';try{const r=await fetch('/api/links/'+uid,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({transport:t,encryption:enc})});if(!r.ok)throw new Error();toast('Transport updated for user');loadLinks();loadStats();}catch(e){toast('Error',true);}}
-function onTransportChange(prefix){const t=$m(prefix+'transport')?.value||'ws';const tcpBox=$m(prefix+'tcp-fields');if(tcpBox)tcpBox.style.display=(t==='tcp')?'block':'none';}
 async function delLink(uid){
   if(!confirm('Delete?'))return;
   try{

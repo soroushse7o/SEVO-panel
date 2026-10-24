@@ -34,21 +34,6 @@ class Config:
     mtproxy_public_host: str = os.environ.get("MTPROXY_PUBLIC_HOST", "")
     mtproxy_public_port: str = os.environ.get("MTPROXY_PUBLIC_PORT", "")
 
-    # XHTTP transport (Xray "splithttp", stream-up mode) — served on the
-    # same HTTP port as the WebSocket transport, no extra port needed.
-    xhttp_enabled: bool = os.environ.get("XHTTP_ENABLED", "true").lower() not in ("0", "false", "no", "off")
-
-    # Optional second raw-TCP VLESS listener (type=tcp, no WS/HTTP framing).
-    # This needs its own externally-reachable TCP port. On Railway, expose
-    # it the same way MTProxy's port is exposed: Settings -> Networking ->
-    # "TCP Proxy" on this service, pointed at RAW_TCP_PORT. Render's web
-    # service plan does NOT support extra raw TCP ports at all — only the
-    # single HTTP $PORT — so this stays disabled by default there.
-    raw_tcp_enabled: bool = os.environ.get("RAW_TCP_ENABLED", "false").lower() not in ("0", "false", "no", "off")
-    raw_tcp_port: int = int(os.environ.get("RAW_TCP_PORT", 8080))
-    raw_tcp_public_host: str = os.environ.get("RAW_TCP_PUBLIC_HOST", "")
-    raw_tcp_public_port: str = os.environ.get("RAW_TCP_PUBLIC_PORT", "")
-
     # Aether (Cloudflare tunnel) outbound -- see app/services/aether.py
     # AETHER_OUTBOUND: direct (default) | aether (fail-closed) | auto. When set, it overrides the panel setting.
     aether_bin: str = os.environ.get("AETHER_BIN", "")

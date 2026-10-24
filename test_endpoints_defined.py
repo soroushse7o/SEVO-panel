@@ -1,7 +1,7 @@
 """
 Verify every transport endpoint the CLIENT links point at is actually
-registered on the FastAPI app. This proves the server can serve all four
-transports (no silent 404s). Lightweight: no live relay, just route table.
+registered on the FastAPI app (WebSocket only) and that the removed
+XHTTP / HTTP routes are gone. Lightweight: no live relay, just route table.
 """
 import sys
 import os
@@ -12,10 +12,6 @@ import app.config as config
 class _S:
     domain = "127.0.0.1"
     secret_key = "x" * 32
-    raw_tcp_enabled = False
-    raw_tcp_public_host = ""
-    raw_tcp_public_port = ""
-    xhttp_enabled = True
     link_cache_ttl = 0
     environment = "test"
     database_url = ""
@@ -42,8 +38,6 @@ for r in app.routes:
 
 EXPECTED = {
     "/ws/{uuid}": {"WS"},
-    "/xhttp1/{uuid}": {"POST"},
-    "/http/{uuid}": {"POST"},
     "/api/aether/status": {"GET"},
     "/api/aether/start": {"POST"},
     "/api/aether/stop": {"POST"},
@@ -65,6 +59,11 @@ for p, want in EXPECTED.items():
     else:
         ok = False
         print(f"  FAIL {p} (want {want}, have {have})")
+
+for gone in ("/xhttp1/{uuid}", "/xhttp/{uuid}/{session_id}", "/http/{uuid}"):
+    if gone in routes:
+        ok = False
+        print(f"  FAIL {gone} should have been removed")
 
 print("\n=== ENDPOINT AUDIT ===")
 print("PASS" if ok else "FAIL")

@@ -1,20 +1,24 @@
 """
-Verification of VLESS link generation across ws / xhttp / tcp / http transports
+Verification of VLESS link generation (WebSocket is the only transport),
 plus real encryption passthrough and path sanitization.
-
-Proves the 3.0.4 regression fix (ws/xhttp security=tls) and that tcp is
-built from RAW_TCP_* while the other three ride the platform HTTPS port.
 """
 import asyncio
 import sys
-import importlib
 
 sys.path.insert(0, ".")
 
-from app.utils import load_app
+import app.config as config_mod
+import app.vless as vless_mod
 
-# Load app with RAW_TCP_* set so tcp links build themselves.
-config_mod, vless_mod = load_app(True, "metro.proxy.rlwy.net", "33114")
+
+class _FakeSettings:
+    domain = "panel.example.com"
+    secret_key = "test"
+    link_cache_ttl = 0
+
+
+config_mod.settings = _FakeSettings()
+vless_mod.settings = config_mod.settings
 
 UID = "11111111-2222-3333-4444-555555555555"
 passed = 0
@@ -56,42 +60,15 @@ async def main():
     _, p = params_of(link)
     check("ws encryption=aes-128-gcm", p.get("encryption") == "aes-128-gcm", p)
 
-    # ---- xhttp ----
-    link = await vless_mod.generate_vless_link(UID, remark="XH", extra={"transport": "xhttp"})
-    nl, p = params_of(link)
-    check("xhttp format", link.startswith(f"vless://{UID}@"), link)
-    check("xhttp :443", nl.endswith(":443"), nl)
-    check("xhttp type=xhttp", p.get("type") == "xhttp", p)
-    check("xhttp security=tls", p.get("security") == "tls", p)
-    check("xhttp mode=stream-one", p.get("mode") == "stream-one", p)
-    check("xhttp path=/xhttp1/uid", p.get("path") == f"/xhttp1/{UID}", p)
-
-    # ---- http ----
-    link = await vless_mod.generate_vless_link(UID, remark="HTTP", extra={"transport": "http"})
-    nl, p = params_of(link)
-    check("http format", link.startswith(f"vless://{UID}@"), link)
-    check("http :443", nl.endswith(":443"), nl)
-    check("http type=http", p.get("type") == "http", p)
-    check("http security=tls", p.get("security") == "tls", p)
-    check("http path=/http/uid", p.get("path") == f"/http/{UID}", p)
-
-    # ---- tcp ----
-    link = await vless_mod.generate_vless_link(UID, remark="TCP", extra={"transport": "tcp"})
-    nl, p = params_of(link)
-    check("tcp format", link.startswith(f"vless://{UID}@"), link)
-    check("tcp host=public", nl.startswith("metro.proxy.rlwy.net:33114"), nl)
-    check("tcp security=none", p.get("security") == "none", p)
-    check("tcp type=tcp", p.get("type") == "tcp", p)
-    check("tcp no path", "path" not in p, p)
-
-    # tcp with RAW_TCP_ENABLED=false must raise
-    config_mod.settings.raw_tcp_enabled = False
-    try:
-        await vless_mod.generate_vless_link(UID, remark="TCP", extra={"transport": "tcp"})
-        check("tcp raises when disabled", False, "no error")
-    except vless_mod.LinkConfigError:
-        check("tcp raises when disabled", True)
-    config_mod.settings.raw_tcp_enabled = True
+    # ---- legacy transport values are served as ws ----
+    for legacy in ("xhttp", "http", "tcp"):
+        link = await vless_mod.generate_vless_link(UID, remark="L", extra={"transport": legacy})
+        nl, p = params_of(link)
+        check(f"{legacy} -> ws type", p.get("type") == "ws", p)
+        check(f"{legacy} -> ws path", p.get("path") == f"/ws/{UID}", p)
+        check(f"{legacy} -> :443", nl.endswith(":443"), nl)
+        jcfg = await vless_mod.generate_vless_json(UID, remark="L", extra={"transport": legacy})
+        check(f"{legacy} json network=ws", jcfg["outbounds"][0]["streamSettings"]["network"] == "ws", jcfg["outbounds"][0]["streamSettings"])
 
     # ---- path sanitization ----
     link = await vless_mod.generate_vless_link(UID, remark="P", extra={"transport": "ws", "custom_path": "ws//weird//"})

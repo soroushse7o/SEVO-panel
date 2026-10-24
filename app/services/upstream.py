@@ -2,8 +2,8 @@
 Outbound connector — the single place where the panel opens a TCP connection
 to the destination a client asked for.
 
-Every transport (ws / xhttp / http / raw-tcp) used to call
-``asyncio.open_connection(address, port)`` directly. They now call
+The WebSocket transport used to call
+``asyncio.open_connection(address, port)`` directly. It now calls
 ``open_upstream(address, port)`` instead, which either connects directly
 (default, identical to the old behaviour) or tunnels through the local
 Aether SOCKS5 proxy (see app/services/aether.py).

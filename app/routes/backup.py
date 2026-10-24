@@ -80,7 +80,7 @@ async def restore_backup(request: Request, _=Depends(require_auth)):
                 "color": link.get("color", "#39ff14"),
                 "flag": link.get("flag", ""),
                 "fragment": link.get("fragment", ""),
-                "transport": link.get("transport", "ws") if link.get("transport") in ("ws", "xhttp", "tcp") else "ws",
+                "transport": "ws",
             }
             async with state.links_lock:
                 state.links[uid] = link_data

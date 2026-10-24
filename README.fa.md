@@ -6,7 +6,7 @@
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/self-hosted-panel?utm_medium=integration&utm_source=template&utm_campaign=generic)
 
-**پنل اشتراک خودمیزبان برای VLESS روی WebSocket، XHTTP، HTTP و TCP خام، همراه با خروجی اختیاری تونل Aether.**
+**پنل اشتراک خودمیزبان برای VLESS روی WebSocket، همراه با خروجی اختیاری تونل Aether.**
 
 برنامه‌ی پایتون ماژولار · FastAPI · SQLite یا PostgreSQL
 
@@ -57,27 +57,21 @@ MTProto (`mtg`) برای تلگرام، و کلاینت تونل [Aether](https:
 مصرف، انقضا، کد QR و دکمه‌های کپی لینک اشتراک و لینک VLESS را نشان می‌دهد — قابل اشتراک‌گذاری
 با کاربر نهایی بدون دادن دسترسی به پنل.
 
-**ترنسپورت‌ها**
-چهار ترنسپورت در دسترس است. WebSocket (پیش‌فرض)، XHTTP و HTTP همگی روی همان پورت HTTPS پلتفرم
-اجرا می‌شوند و نیازی به پورت اضافه نیست. یک شنوندهٔ VLESS خام (`type=tcp`، بدون TLS/WS) هم
-اختیاری است و به TCP Proxy جدا نیاز دارد (بخش
-[فعال‌کردن ترنسپورت‌های اضافه](#۵-فعالکردن-ترنسپورتهای-اضافه-اختیاری) را ببینید).
+**ترنسپورت**
+WebSocket تنها ترنسپورت پشتیبانی‌شده است و روی پورت HTTPS پلتفرم اجرا می‌شود، پس نیازی به پورت
+اضافه نیست.
 
 | ترنسپورت | مسیر | توضیح |
 |----------|------|-------|
-| WebSocket | `/ws/{uuid}` | پیش‌فرض و سازگارترین. |
-| XHTTP، stream-one | `/xhttp1/{uuid}` | یک درخواست POST تمام‌دوطرفه (splithttp در Xray). |
-| XHTTP، stream-up | `/xhttp/{uuid}/{session_id}` | آپلود (POST) و دانلود (GET) جدا روی یک نشست. |
-| HTTP | `/http/{uuid}` | تونل ساده‌ی درخواست/پاسخ روی HTTP/1.1. |
-| TCP خام | `RAW_TCP_PORT` | اختیاری، با TCP Proxy جدا، بدون TLS. |
+| WebSocket | `/ws/{uuid}` | تنها ترنسپورت پشتیبانی‌شده. |
 
-مسیرهای پیش‌فرض، اثر انگشت TLS، SNI، host، ALPN و حالت XHTTP از طریق تنظیمات خروجی
+مسیر پیش‌فرض، اثر انگشت TLS، SNI، host و ALPN از طریق تنظیمات خروجی
 (`/api/outbound-config`) قابل تغییر است.
 
 **خروجی تونل Aether**
 تب **Aether** کلاینت تونل Aether را روشن، خاموش و ری‌استارت می‌کند و فاز زنده، گیت‌وی، خروجی و
 لاگ‌ها را نشان می‌دهد. Aether یک پراکسی SOCKS5 محلی روی `127.0.0.1` (به‌طور پیش‌فرض پورت
-`1819`) باز می‌کند و پنل می‌تواند اتصال همه‌ی کاربران — WebSocket، XHTTP، HTTP و TCP خام — را از
+`1819`) باز می‌کند و پنل می‌تواند اتصال همه‌ی کاربران را از
 آن عبور دهد. جزئیات در بخش [تونل Aether](#۶-تونل-aether-اختیاری) آمده است.
 
 **پراکسی تلگرام (MTProxy)**
@@ -131,11 +125,6 @@ MTProto (`mtg`) برای تلگرام، و کلاینت تونل [Aether](https:
 | `MTPROXY_CONCURRENCY` | اختیاری | `4096` | بیشترین تعداد اتصال هم‌زمان MTProxy. |
 | `MTPROXY_PUBLIC_HOST` | اختیاری | `shuttle.proxy.rlwy.net` | تعیین دستی میزبان عمومی، اگر خودکار تشخیص داده نشد. |
 | `MTPROXY_PUBLIC_PORT` | اختیاری | `15140` | تعیین دستی پورت عمومی. |
-| `XHTTP_ENABLED` | اختیاری | `true` | فعال/غیرفعال کردن ترنسپورت XHTTP روی همان پورت HTTPS. پیش‌فرض `true` است. |
-| `RAW_TCP_ENABLED` | اختیاری | `false` | فعال کردن شنوندهٔ دوم VLESS با `type=tcp` بدون TLS/WS. به TCP Proxy جدا نیاز دارد — پایین را ببینید. |
-| `RAW_TCP_PORT` | اختیاری | `8080` | پورتی که شنوندهٔ TCP خام *داخل* کانتینر روی آن گوش می‌دهد. |
-| `RAW_TCP_PUBLIC_HOST` | اختیاری | `shuttle.proxy.rlwy.net` | میزبان عمومی شنوندهٔ TCP خام. |
-| `RAW_TCP_PUBLIC_PORT` | اختیاری | `15141` | پورت عمومی شنوندهٔ TCP خام. |
 
 متغیرهای مربوط به Aether همگی اختیاری هستند و در [بخش Aether](#۶-تونل-aether-اختیاری) فهرست
 شده‌اند.
@@ -171,18 +160,7 @@ tg://proxy?server=shuttle.proxy.rlwy.net&port=15140&secret=ee…
 موقت نشان می‌دهد. اگر این متغیرها در دسترس نبودند، خودتان `MTPROXY_PUBLIC_HOST` و
 `MTPROXY_PUBLIC_PORT` را تنظیم کنید.
 
-### ۵. فعال‌کردن ترنسپورت‌های اضافه (اختیاری)
-
-WebSocket، XHTTP و HTTP بدون هیچ تنظیم اضافه‌ای روی همان پورت HTTPS کار می‌کنند، فقط
-`XHTTP_ENABLED=true` (که پیش‌فرض هم همین است) کافی است. از داشبورد، لینک با ترنسپورت `xhttp`
-یا `http` را دقیقاً مثل لینک `ws` بسازید.
-
-ترنسپورت TCP خام یک شنوندهٔ جدا با پورت مخصوص به خودش است، پس دقیقاً مثل MTProxy به TCP Proxy
-جدا نیاز دارد:
-
-۱. `RAW_TCP_ENABLED=true` را ست کنید (و اگر پورت پیش‌فرض را نمی‌خواهید، `RAW_TCP_PORT` را هم بگذارید).
-۲. در **Networking ← TCP Proxy** یک TCP Proxy دوم بسازید که به همان پورت داخلی اشاره کند.
-۳. میزبان و پورت عمومی‌ای که Railway می‌دهد را در `RAW_TCP_PUBLIC_HOST` و `RAW_TCP_PUBLIC_PORT` بگذارید.
+### ۵. دامنهٔ عمومی دوم (اختیاری)
 
 **بودجهٔ TCP Proxy روی Railway.** یک پروژهٔ Railway در حال حاضر تا ۳ TCP Proxy و ۲ دامنهٔ عمومی
 برای هر سرویس اجازه می‌دهد. در این پروژه این‌طور استفاده می‌شود:
@@ -190,7 +168,7 @@ WebSocket، XHTTP و HTTP بدون هیچ تنظیم اضافه‌ای روی ه
 | # | برای چه | پورت داخلی | از خروجی Railway ست کنید |
 |---|---|---|---|
 | ۱ | MTProxy | `MTPROXY_PORT` (۴۴۳) | `MTPROXY_PUBLIC_HOST` / `MTPROXY_PUBLIC_PORT` |
-| ۲ | VLESS با TCP خام | `RAW_TCP_PORT` (۸۰۸۰) | `RAW_TCP_PUBLIC_HOST` / `RAW_TCP_PUBLIC_PORT` |
+| ۲ | *آزاد* | — | فعلاً توسط پنل استفاده نمی‌شود |
 | ۳ | *آزاد* | — | فعلاً توسط پنل استفاده نمی‌شود |
 
 شنوندهٔ SOCKS5 مربوط به Aether فقط روی `127.0.0.1` گوش می‌دهد، پس به TCP Proxy نیاز ندارد.
@@ -198,7 +176,7 @@ WebSocket، XHTTP و HTTP بدون هیچ تنظیم اضافه‌ای روی ه
 **استفاده از دامنهٔ عمومی دوم.** Railway می‌تواند یک دامنهٔ عمومی HTTP دوم هم به سرویس بدهد
 (Settings ← Networking ← Public Networking ← «+ Domain»). برای این کار کد جدیدی لازم نیست — هر
 لینک می‌تواند `Host`/`SNI` مخصوص خودش داشته باشد (Advanced Options، یا `custom_host`/`custom_sni`
-از طریق API). کافی است لینک‌های `ws` یا `xhttp` جدید را با پرکردن همین دو فیلد به دامنهٔ دوم
+از طریق API). کافی است لینک‌های `ws` جدید را با پرکردن همین دو فیلد به دامنهٔ دوم
 بدهید؛ پنل هر دو دامنه را از همان یک پروسه سرویس می‌دهد، پس اگر یک دامنه فیلتر شد، فوراً
 می‌توانید روی دامنهٔ دیگر لینک بدهید بدون اینکه چیزی را دوباره دیپلوی کنید.
 
@@ -275,13 +253,12 @@ Aether فقط TCP را عبور می‌دهد؛ UDP از مسیر آن کار ن
 | `app/utils.py` | توابع کمکی قالب‌بندی و اعتبارسنجی. |
 | `app/models.py` | مدل‌های Pydantic برای درخواست‌ها. |
 | `app/routes/` | مسیرهای HTTP و WebSocket، گروه‌بندی‌شده بر اساس حوزه (auth، links، addresses، stats، settings، subscription، backup، mtproxy، panel، transports، aether). |
-| `app/routes/tunnel.py` | مسیرهای تونل VLESS روی WebSocket، XHTTP و HTTP — موتور اصلی پراکسی. |
+| `app/routes/tunnel.py` | مسیر تونل VLESS روی WebSocket — موتور اصلی پراکسی. |
 | `app/routes/aether.py` | API کنترل Aether زیر `/api/aether/*`. |
 | `app/services/` | حلقه‌ها و سرویس‌های پس‌زمینه: ترافیک، زنده‌نگه‌داری، تلگرام، انقضای لینک. |
 | `app/services/mtproxy.py` | ناظر پراکسی MTProto، مدیریت سکرت و ساخت لینک. |
-| `app/services/raw_tcp.py` | شنوندهٔ VLESS با TCP خام (`type=tcp`)، مستقل از پورت اصلی HTTP. |
 | `app/services/aether.py` | مدیر پروسه‌ی Aether: نصب، استارت/استاپ، پارس لاگ و watchdog. |
-| `app/services/upstream.py` | تنها نقطه‌ی اتصال خروجی برای همه‌ی ترنسپورت‌ها (مستقیم یا از SOCKS5 Aether). |
+| `app/services/upstream.py` | تنها نقطه‌ی اتصال خروجی برای تونل (مستقیم یا از SOCKS5 Aether). |
 | `app/templates/panel_html.py` | رابط کاربری تک‌صفحه‌ای مدیر. |
 | `app/templates/user_html.py` | صفحه‌ی عمومی اشتراک کاربر. |
 | `app/static/img/`، `img/` | فایل‌های لوگو و فاویکون. |

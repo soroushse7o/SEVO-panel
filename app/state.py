@@ -97,19 +97,6 @@ class AppState:
             "public_port": "",
         }
 
-        # XHTTP transport — sessions correlate a GET (download) request with
-        # its matching POST (upload) request. Kept separate from
-        # state.connections/connection_sockets because those assume a
-        # Starlette WebSocket object (close(code=...)); xhttp sessions carry
-        # a raw asyncio StreamWriter instead, and mixing the two would break
-        # any code that iterates connection_sockets expecting a WebSocket.
-        self.xhttp_sessions: dict[str, dict] = {}
-        self.xhttp_lock = asyncio.Lock()
-
-        # Raw-TCP VLESS listener (plain type=tcp inbound, no WS/HTTP framing)
-        self.raw_tcp_connections: dict[str, dict] = {}
-        self.raw_tcp_lock = asyncio.Lock()
-
     def log_event(self, etype: str, message: str, ip: str = "", ua: str = ""):
         """Append an event to the in-memory log buffer."""
         from datetime import datetime, timezone

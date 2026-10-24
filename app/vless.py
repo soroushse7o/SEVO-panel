@@ -73,25 +73,16 @@ async def _ob_path(key: str, default: str) -> str:
 
 
 class LinkConfigError(Exception):
-    """Raised when a link can't be generated because required config for
-    its transport is missing (e.g. tcp transport without a public
-    host/port for the raw-TCP listener)."""
+    """Raised when a link can't be generated because required config is missing."""
     pass
 
 
 async def generate_vless_link(uid, remark="SE7O", address=None, extra=None):
     """
-    extra["transport"] selects the wire transport:
-      - "ws" (default)   -> WebSocket over the main HTTPS port (unchanged)
-      - "xhttp"           -> Xray XHTTP/splithttp, stream-up mode, same
-                              HTTPS port as ws (no new port needed)
-      - "tcp"             -> raw VLESS TCP, no TLS/WS/HTTP framing at all;
-                              connects directly to raw_tcp_port and requires
-                              that port to actually be exposed by the host
-                              (see config.py raw_tcp_* settings)
+    Build a VLESS-over-WebSocket link. WebSocket is the only supported
+    transport; any other stored/requested transport value is treated as ws.
     """
-    transport = (extra.get("transport") or "ws") if extra else "ws"
-    cache_key = f"{uid}:{remark}:{address}:{transport}:{json.dumps(extra) if extra else ''}"
+    cache_key = f"{uid}:{remark}:{address}:{json.dumps(extra) if extra else ''}"
     cached = state.link_cache.get(cache_key)
     if cached and cached["expires"] > time.time():
         return cached["link"]
@@ -104,57 +95,15 @@ async def generate_vless_link(uid, remark="SE7O", address=None, extra=None):
     fragment = extra.get("fragment", "") if extra else ""
     encryption = _resolve_encryption(extra)
 
-    if transport == "tcp":
-        # Plain TCP, no TLS/WS — the raw listener terminates VLESS directly.
-        if not settings.raw_tcp_enabled:
-            raise LinkConfigError(
-                "Raw TCP transport is disabled (RAW_TCP_ENABLED is not set to true)."
-            )
-        if not settings.raw_tcp_public_host or not settings.raw_tcp_public_port:
-            raise LinkConfigError(
-                "Raw TCP transport requires RAW_TCP_PUBLIC_HOST and RAW_TCP_PUBLIC_PORT to be "
-                "set to the host/port your platform's TCP proxy gave you (Railway: Settings -> "
-                "Networking -> TCP Proxy, pointed at RAW_TCP_PORT)."
-            )
-        port = int(settings.raw_tcp_public_port)
-        tcp_addr = settings.raw_tcp_public_host
-        params = {"encryption": encryption, "security": "none", "type": "tcp"}
-        query = "&".join(f"{k}={quote(str(v))}" for k, v in params.items())
-        safe_remark = quote(remark.encode("utf-8", errors="replace").decode("utf-8"))
-        link = f"vless://{uid}@{format_host_port(tcp_addr, port)}?{query}#{safe_remark}"
-        state.link_cache[cache_key] = {"link": link, "expires": time.time() + settings.link_cache_ttl}
-        return link
-
-    if transport == "xhttp":
-        default_path = await _ob_path("ob_xhttp_path", f"/xhttp1/{uid}")
-        path = _sanitize_path(
-            (extra.get("custom_path") or default_path) if extra else default_path,
-            default_path,
-        )
-        params = {
-            "encryption": encryption, "security": "tls", "type": "xhttp", "mode": "stream-one",
-            "host": host, "path": path, "sni": sni, "fp": fp, "alpn": "http/1.1",
-        }
-    elif transport == "http":
-        default_path = await _ob_path("ob_http_path", f"/http/{uid}")
-        path = _sanitize_path(
-            (extra.get("custom_path") or default_path) if extra else default_path,
-            default_path,
-        )
-        params = {
-            "encryption": encryption, "security": "tls", "type": "http",
-            "host": host, "path": path, "sni": sni, "fp": fp, "alpn": "http/1.1",
-        }
-    else:  # ws
-        default_path = await _ob_path("ob_ws_path", f"/ws/{uid}")
-        path = _sanitize_path(
-            (extra.get("custom_path") or default_path) if extra else default_path,
-            default_path,
-        )
-        params = {
-            "encryption": encryption, "security": "tls", "type": "ws",
-            "host": host, "path": path, "sni": sni, "fp": fp, "alpn": "http/1.1",
-        }
+    default_path = await _ob_path("ob_ws_path", f"/ws/{uid}")
+    path = _sanitize_path(
+        (extra.get("custom_path") or default_path) if extra else default_path,
+        default_path,
+    )
+    params = {
+        "encryption": encryption, "security": "tls", "type": "ws",
+        "host": host, "path": path, "sni": sni, "fp": fp, "alpn": "http/1.1",
+    }
     if fragment:
         params["fragment"] = fragment
 
@@ -176,7 +125,6 @@ async def generate_vless_json(uid, remark="SE7O", address=None, extra=None):
 
     Returns a dict; serialize it with json.dumps for the API/modal.
     """
-    transport = (extra.get("transport") or "ws") if extra else "ws"
     domain = get_domain()
     addr = address or domain
     sni = (extra.get("custom_sni") or domain) if extra else domain
@@ -185,62 +133,27 @@ async def generate_vless_json(uid, remark="SE7O", address=None, extra=None):
     fragment = extra.get("fragment", "") if extra else ""
     encryption = _resolve_encryption(extra)
 
-    if transport == "tcp":
-        port = int(settings.raw_tcp_public_port) if settings.raw_tcp_public_port else 443
-        tcp_addr = settings.raw_tcp_public_host or addr
-        net_settings = {"protocol": "tcp", "tcpSettings": {}}
-        security = "none"
-        sec_settings = {}
-        outbound_address = tcp_addr
-        outbound_port = port
-    else:
-        if transport == "xhttp":
-            default_path = await _ob_path("ob_xhttp_path", f"/xhttp1/{uid}")
-            net_settings = {
-                "protocol": "xhttp",
-                "xhttpSettings": {
-                    "path": _sanitize_path(
-                        (extra.get("custom_path") or default_path) if extra else default_path,
-                        default_path,
-                    ).replace("{uuid}", uid).replace("{uid}", uid),
-                    "mode": "stream-one",
-                    "host": host,
-                },
-            }
-        elif transport == "http":
-            default_path = await _ob_path("ob_http_path", f"/http/{uid}")
-            net_settings = {
-                "protocol": "http",
-                "httpSettings": {
-                    "path": _sanitize_path(
-                        (extra.get("custom_path") or default_path) if extra else default_path,
-                        default_path,
-                    ).replace("{uuid}", uid).replace("{uid}", uid),
-                    "host": host,
-                },
-            }
-        else:  # ws
-            default_path = await _ob_path("ob_ws_path", f"/ws/{uid}")
-            net_settings = {
-                "protocol": "ws",
-                "wsSettings": {
-                    "path": _sanitize_path(
-                        (extra.get("custom_path") or default_path) if extra else default_path,
-                        default_path,
-                    ).replace("{uuid}", uid).replace("{uid}", uid),
-                    "headers": {"Host": host},
-                },
-            }
-        security = "tls"
-        sec_settings = {
-            "tlsSettings": {
-                "serverName": sni,
-                "alpn": ["http/1.1"],
-                "fingerprint": fp,
-            }
+    default_path = await _ob_path("ob_ws_path", f"/ws/{uid}")
+    net_settings = {
+        "protocol": "ws",
+        "wsSettings": {
+            "path": _sanitize_path(
+                (extra.get("custom_path") or default_path) if extra else default_path,
+                default_path,
+            ).replace("{uuid}", uid).replace("{uid}", uid),
+            "headers": {"Host": host},
+        },
+    }
+    security = "tls"
+    sec_settings = {
+        "tlsSettings": {
+            "serverName": sni,
+            "alpn": ["http/1.1"],
+            "fingerprint": fp,
         }
-        outbound_address = addr
-        outbound_port = 443
+    }
+    outbound_address = addr
+    outbound_port = 443
 
     vnext = [{
         "address": outbound_address,
@@ -257,7 +170,7 @@ async def generate_vless_json(uid, remark="SE7O", address=None, extra=None):
         "protocol": "vless",
         "settings": {"vnext": vnext, "servers": []},
         "streamSettings": {
-            "network": transport if transport in ("ws", "xhttp", "http", "tcp") else "ws",
+            "network": "ws",
             "security": security,
             **net_settings,
             **sec_settings,

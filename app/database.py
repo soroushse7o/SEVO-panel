@@ -37,8 +37,9 @@ async def init_db():
             await conn.execute(SCHEMA_POSTGRES)
             await conn.execute("ALTER TABLE links ADD COLUMN IF NOT EXISTS transport TEXT DEFAULT 'ws'")
             await conn.execute("ALTER TABLE links ADD COLUMN IF NOT EXISTS encryption TEXT DEFAULT 'none'")
-            # NOTE: transports (ws / xhttp / http / tcp) are all functional. We no
-            # longer force every link onto ws -- existing links keep their transport.
+            # WebSocket is the only supported transport: migrate any old
+            # xhttp / http / tcp links onto ws.
+            await conn.execute("UPDATE links SET transport = 'ws' WHERE transport IS NULL OR transport <> 'ws'")
     else:
         db_path = settings.db_path
         try:
@@ -64,8 +65,10 @@ async def init_db():
             await _db_conn.execute("ALTER TABLE links ADD COLUMN encryption TEXT DEFAULT 'none'")
         except Exception:
             pass  # column already exists
-        # NOTE: transports (ws / xhttp / http / tcp) are all functional. We no
-        # longer force every link onto ws -- existing links keep their transport.
+        # WebSocket is the only supported transport: migrate any old
+        # xhttp / http / tcp links onto ws.
+        await _db_conn.execute("UPDATE links SET transport = 'ws' WHERE transport IS NULL OR transport <> 'ws'")
+        await _db_conn.commit()
 
 
 async def close_db():

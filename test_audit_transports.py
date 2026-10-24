@@ -16,10 +16,6 @@ import app.config as config
 class _FakeSettings:
     domain = "panel.example.com"
     secret_key = "test"
-    raw_tcp_enabled = True
-    raw_tcp_public_host = "tcp.example.com"
-    raw_tcp_public_port = "8443"
-    xhttp_enabled = True
     link_cache_ttl = 0
 
 config.settings = _FakeSettings()
@@ -43,7 +39,7 @@ def extract_path_from_uri(uri):
 async def main():
     uid = "11111111-2222-3333-4444-555555555555"
     results = []
-    for transport in ("ws", "xhttp", "http", "tcp"):
+    for transport in ("ws",):
         extra = {"transport": transport}
         uri = await generate_vless_link(uid, remark="T", extra=extra)
         jcfg = await generate_vless_json(uid, remark="T", extra=extra)
@@ -52,9 +48,6 @@ async def main():
     print("=== GENERATED LINKS / JSON (client side) ===")
     server_endpoints = {
         "ws": "/ws/{uuid}",
-        "xhttp": "/xhttp1/{uuid}",   # tunnel.py serves /xhttp1/{uuid}
-        "http": "/http/{uuid}",       # tunnel.py serves /http/{uuid}
-        "tcp": None,                  # raw tcp, no HTTP path
     }
     ok = True
     for transport, uri, jcfg in results:
@@ -66,30 +59,21 @@ async def main():
         net = ss["network"]
         if net == "ws":
             jpath = ss["wsSettings"]["path"]
-        elif net == "xhttp":
-            jpath = ss["xhttpSettings"]["path"]
-        elif net == "http":
-            jpath = ss["httpSettings"]["path"]
         else:
             jpath = None
         # Compare URI path vs server endpoint
         exp = server_endpoints[transport]
-        if transport == "tcp":
-            print("TCP (raw, no HTTP path) - link type:", typ)
-            if typ != "tcp":
-                ok = False; print("  FAIL: uri type not tcp")
-        else:
-            # replace {uuid} with the actual uid
-            exp_path = exp.replace("{uuid}", uid)
-            print(f"  uri type={typ} path={path}")
-            print(f"  json path={jpath}")
-            print(f"  server expects path={exp_path}")
-            if path != exp_path:
-                ok = False; print(f"  FAIL: uri path {path} != server {exp_path}")
-            if jpath != exp_path:
-                ok = False; print(f"  FAIL: json path {jpath} != server {exp_path}")
-            if typ != transport:
-                ok = False; print(f"  FAIL: uri type {typ} != {transport}")
+        # replace {uuid} with the actual uid
+        exp_path = exp.replace("{uuid}", uid)
+        print(f"  uri type={typ} path={path}")
+        print(f"  json path={jpath}")
+        print(f"  server expects path={exp_path}")
+        if path != exp_path:
+            ok = False; print(f"  FAIL: uri path {path} != server {exp_path}")
+        if jpath != exp_path:
+            ok = False; print(f"  FAIL: json path {jpath} != server {exp_path}")
+        if typ != transport:
+            ok = False; print(f"  FAIL: uri type {typ} != {transport}")
 
     print("\n=== AUDIT RESULT ===")
     print("PASS" if ok else "FAIL")

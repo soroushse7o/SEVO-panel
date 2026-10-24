@@ -21,30 +21,6 @@ MTPROXY_FAKE_DOMAIN = "www.cloudflare.com"
 # Optional: use external PostgreSQL instead of SQLite.
 # DATABASE_URL = "postgresql://user:***@host:5432/dbname"
 
-# XHTTP transport (Xray splithttp, stream-up mode). Served on the same
-# HTTPS port as the WebSocket transport -- no extra port or TCP Proxy
-# needed. On by default.
-XHTTP_ENABLED = "true"
-
-# Optional second raw-TCP VLESS inbound (type=tcp, no TLS/WS framing).
-# Off by default. Turning this on only binds the port *inside* the
-# container -- to make it reachable you also need a platform-level TCP
-# forward, exactly like the MTProxy TCP Proxy above:
-#   Railway: Settings -> Networking -> "TCP Proxy" -> point at RAW_TCP_PORT,
-#   then put the public host/port Railway gives you into
-#   RAW_TCP_PUBLIC_HOST / RAW_TCP_PUBLIC_PORT so generated links are correct.
-#   Render: not supported on standard web services (HTTP-only) -- leave off.
-#
-# Railway currently allows up to 3 TCP proxies + 2 public domains per
-# service. This project uses proxy #1 for MTProxy (443) and #2 here for
-# raw-TCP (8080), leaving a 3rd slot free. The 2nd public domain doesn't
-# need a new setting -- generate a ws/xhttp link and put that domain in
-# its Host/SNI fields (Advanced Options) to serve it from the same process.
-RAW_TCP_ENABLED = "true"
-RAW_TCP_PORT = "8080"
-RAW_TCP_PUBLIC_HOST = ""
-RAW_TCP_PUBLIC_PORT = ""
-
 # ---------------------------------------------------------------------------
 # Aether tunnel (merged from ASiRi-web-panel) -- optional exit for ALL users
 # ---------------------------------------------------------------------------

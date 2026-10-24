@@ -6,7 +6,6 @@ from app.security import require_auth
 from app import state
 from app.database import execute as db_exec, fetchall, fetchone
 from app.vless import generate_vless_link, generate_vless_json, LinkConfigError
-from app.config import settings
 from app.models import LinkCreate
 from datetime import datetime, timezone, timedelta
 import uuid as uuid_lib
@@ -95,15 +94,7 @@ async def create_link(request: Request, _=Depends(require_auth)):
     encryption = body.get("encryption", "none")
     if encryption not in ("none", "aes-128-gcm", "aes-256-gcm", "chacha20-poly1305", "zero"):
         encryption = "none"
-    transport = body.get("transport", "ws")
-    if transport not in ("ws", "xhttp", "tcp", "http"):
-        transport = "ws"
-    if transport == "tcp" and (not settings.raw_tcp_public_host or not settings.raw_tcp_public_port):
-        raise HTTPException(
-            status_code=400,
-            detail="Raw TCP transport isn't configured yet: set RAW_TCP_PUBLIC_HOST and "
-                   "RAW_TCP_PUBLIC_PORT (from your platform's TCP proxy) before creating a tcp link.",
-        )
+    transport = "ws"  # WebSocket is the only supported transport
 
     if flag:
         flag = flag.strip()[:2].upper()
@@ -252,14 +243,7 @@ async def update_link(uid: str, request: Request, _=Depends(require_auth)):
             else:
                 updates[field] = str(body[field])[:100]
     if "transport" in body:
-        tv = str(body["transport"]).strip()
-        updates["transport"] = tv if tv in ("ws", "xhttp", "tcp", "http") else "ws"
-        if updates["transport"] == "tcp" and (not settings.raw_tcp_public_host or not settings.raw_tcp_public_port):
-            raise HTTPException(
-                status_code=400,
-                detail="Raw TCP transport isn't configured yet: set RAW_TCP_PUBLIC_HOST and "
-                       "RAW_TCP_PUBLIC_PORT before switching a link to tcp.",
-            )
+        updates["transport"] = "ws"
     if "flag" in body:
         fv = str(body["flag"]).strip()[:2].upper()
         updates["flag"] = fv if re.match(r"^[A-Z]{2}$", fv) else ""
@@ -404,9 +388,7 @@ async def import_links(request: Request, _=Depends(require_auth)):
         flag = str(item.get("flag", "")).strip()[:2].upper()
         if not re.match(r"^[A-Z]{2}$", flag):
             flag = ""
-        transport = str(item.get("transport", "ws")).strip()
-        if transport not in ("ws", "xhttp", "tcp"):
-            transport = "ws"
+        transport = "ws"
 
         async with state.links_lock:
             if uid_input in state.links:
