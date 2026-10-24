@@ -4,9 +4,9 @@
 
 # SE7O-SNA Panel v3
 
-   [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/self-hosted-panel?referralCode=6Eu2Xl&utm_medium=integration&utm_source=template&utm_campaign=generic)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/self-hosted-panel?utm_medium=integration&utm_source=template&utm_campaign=generic)
 
-**A self-hosted subscription panel for VLESS over WebSocket, XHTTP, and raw TCP.**
+**A self-hosted subscription panel for VLESS over WebSocket, XHTTP, HTTP, and raw TCP, with an optional Aether tunnel exit.**
 
 Modular Python application · FastAPI · SQLite or PostgreSQL
 
@@ -18,48 +18,68 @@ Modular Python application · FastAPI · SQLite or PostgreSQL
 
 ## Overview
 
-SE7O-SNA Panel manages VLESS inbounds and subscription links from one dashboard. Version 2
-replaces the single-file design of v1 with a modular package: configuration, database access,
-state, security, routes, and background services each live in their own module, while the web UI
-remains a single embedded HTML template. Deployment is unchanged — push the repository to any
-container platform and set a handful of environment variables. No database server, reverse proxy,
-or build pipeline is required.
+SE7O-SNA Panel manages VLESS inbounds and subscription links from one dashboard. The code is a
+modular package: configuration, database access, state, security, routes, and background services
+each live in their own module, while the web UI remains a single embedded HTML template.
+Deployment is simple — push the repository to Railway and set a handful of environment variables.
+No database server, reverse proxy, or build pipeline is required.
+
+Besides the panel itself, the container also runs two optional helpers as child processes: an
+MTProto proxy (`mtg`) for Telegram, and the [Aether](https://github.com/CluvexStudio/Aether)
+tunnel client, which can carry all of your users' outbound traffic through Cloudflare instead of
+the server's own IP.
 
 ## Features
 
 **Access control**
-Username and password login, JWT sessions in HTTP-only cookies, a rate-limited login endpoint, an enforced
-password policy, and an audit log of every login attempt with IP and user agent.
+Username and password login, JWT sessions in HTTP-only cookies (valid for 7 days), a login endpoint
+limited to 10 attempts per minute, a password policy enforced when you change the password
+(8+ characters with upper case, lower case, and a digit), and an audit log of every login attempt
+with IP and user agent.
 
 **Inbound management**
 Create, edit, enable, disable, and delete VLESS configurations. Set per-inbound traffic quotas,
 expiry dates, and concurrent-connection limits. Override path, SNI, host, and TLS fingerprint
-individually, add packet-fragmentation ranges against DPI, and assign country flags. Bulk actions
-cover activation, quota resets, and deletion. Inbounds can be exported to and imported from JSON.
+individually, add packet-fragmentation ranges against DPI, and assign country flags. Rotate an
+inbound's UUID, disconnect its live sessions, or fetch its client JSON. Bulk actions cover
+activation, quota resets, and deletion. Inbounds can be exported to and imported from JSON, and the
+whole panel can be backed up and restored from a single file.
 
 **Analytics**
 Live upload and download charts, 24-hour timezone-aware traffic history, per-inbound
 distribution, monthly quota tracking, and CPU, memory, and disk monitoring.
 
 **Clean IP list**
-Add, edit, bulk-import, and bulk-delete IPv4 and IPv6 addresses that are attached to generated
-subscriptions. A default set of clean addresses is seeded on first run and can be cleared or
+Add, edit, bulk-import, and bulk-delete IPv4 addresses, IPv6 addresses, and hostnames that are
+attached to generated subscriptions. A default set is seeded on first run and can be cleared or
 replaced entirely from the dashboard.
 
-**Per-user page**
-Every inbound has a public page at `/user/{uid}` showing status, data usage, expiry, a QR code,
-and one-tap copy buttons for the subscription and single VLESS links — shareable with end users
-without granting panel access.
-
-**Telegram notifications**
-Bilingual (English/Persian) templates for panel logins, expired inbounds, errors, and quota
-warnings, with a live template preview in the dashboard.
+**Subscriptions and per-user page**
+Every inbound has a subscription endpoint at `/sub/{uid}` and a public page at `/user/{uid}`
+showing status, data usage, expiry, a QR code, and one-tap copy buttons for the subscription and
+single VLESS links — shareable with end users without granting panel access.
 
 **Transports**
-WebSocket (default) and XHTTP (Xray splithttp, stream-up mode) both run on the same HTTPS port —
-no extra port needed. An optional raw-TCP VLESS listener (`type=tcp`, no TLS/WS framing) is
-available on a second port for platforms that support exposing extra TCP ports (see
-[Enable extra transports](#6-enable-extra-transports-optional) below).
+Four transports are available. WebSocket (default), XHTTP, and HTTP all run on the platform's
+HTTPS port, so no extra port is needed. A plain `type=tcp` VLESS listener (no TLS/WS framing) is
+optional and needs its own TCP proxy (see [Enable extra transports](#5-enable-extra-transports-optional)).
+
+| Transport | Endpoint | Notes |
+|-----------|----------|-------|
+| WebSocket | `/ws/{uuid}` | Default and most compatible. |
+| XHTTP, stream-one | `/xhttp1/{uuid}` | Single full-duplex POST (Xray splithttp). |
+| XHTTP, stream-up | `/xhttp/{uuid}/{session_id}` | Separate upload (POST) and download (GET) on one session. |
+| HTTP | `/http/{uuid}` | Plain HTTP/1.1 request/response tunnel. |
+| Raw TCP | `RAW_TCP_PORT` | Optional, separate TCP proxy, no TLS. |
+
+Default paths, TLS fingerprint, SNI, host, ALPN, and XHTTP mode can be changed through the
+outbound settings (`/api/outbound-config`).
+
+**Aether tunnel exit**
+The **Aether** tab starts, stops, and restarts the Aether tunnel client and shows its live phase,
+gateway, exit, and logs. Aether exposes a local SOCKS5 proxy on `127.0.0.1` (port `1819` by
+default), and the panel can route every user connection — WebSocket, XHTTP, HTTP, and raw TCP —
+through it. Details are in [Aether tunnel](#6-aether-tunnel-optional) below.
 
 **Telegram MTProxy**
 An MTProto proxy (`mtg`) runs as a child process inside the same container. The FakeTLS secret is
@@ -67,70 +87,76 @@ generated on first start and persisted, and the panel builds the `tg://proxy` li
 from the platform's TCP proxy address. The MTProxy tab shows process state, the public endpoint,
 a QR code, and lets you rotate the secret or change the fronting domain.
 
+**Telegram notifications**
+Bilingual (English/Persian) templates for panel logins, expired inbounds, errors, 90% quota
+warnings, and tunnel-down alerts, with a live template preview and a periodic usage report whose
+interval you choose in the dashboard.
+
 **Keep-alive**
-Simple and advanced anti-sleep modes with a configurable interval, for platforms that idle out
-free instances.
+Simple and advanced anti-sleep modes with a configurable interval, for instances that get idled
+out after a period of inactivity.
 
 ---
 
 ## Quick start
 
-### 1. Fork
+### 1. Deploy on Railway
 
-Fork this repository to your GitHub account.
+Click the button to deploy from the template:
 
-### 2. Deploy
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/self-hosted-panel?utm_medium=integration&utm_source=template&utm_campaign=generic)
 
-Connect the fork to a platform that supports WebSocket and Docker builds. The included
-`Dockerfile` is detected automatically; no start command is needed.
+Or deploy manually: fork this repository to your GitHub account, create a new Railway project from
+the fork, and let Railway build it. The included `Dockerfile` is detected automatically; no start
+command is needed (the `Procfile` runs `python main.py` as a fallback).
 
-Recommended platforms, none of which require a credit card or phone number:
+### 2. Configure
 
-| Platform | Free tier | Sleeps | Persistent volume |
-|----------|-----------|--------|-------------------|
-| Railway  | $5 credit / month | No, with keep-alive | Yes (1 GB) |
-| Render   | 750 hours / month | Yes, after 15 min | Yes (1 GB) |
-| Dockfly  | 1 project, 256 MB | No | Yes |
-| Back4app | 0.25 CPU, 256 MB | No | No |
-| Scalingo | 30-day trial | No | No |
-
-Koyeb, Fly.io, Northflank, and Zeabur also work but require a card or phone number at signup.
-
-### 3. Configure
-
-Add these environment variables in the platform dashboard:
+Add these environment variables in the Railway service's **Variables** tab. A ready-to-copy list
+with comments is also in [`SE7O-SNA-config.toml`](SE7O-SNA-config.toml).
 
 | Variable | Required | Example | Description |
 |----------|----------|---------|-------------|
 | `ADMIN_USERNAME` | Recommended | `se7oadmin` | Panel login username. Defaults to `admin`. |
-| `ADMIN_PASSWORD` | Yes | `StrongPass!123` | Panel login password. Minimum 8 characters with upper case, lower case, and a digit. |
+| `ADMIN_PASSWORD` | Yes | `StrongPass!123` | Panel login password. Defaults to `admin` if unset, so always set your own. |
 | `SECRET_KEY` | Yes | *(long random string)* | Signs JWT session cookies. If unset, a new key is generated on first start and stored in the database. |
-| `DOMAIN` | Recommended | `se7o-sna.up.railway.app` | Public domain, used to build subscription links correctly. Auto-detected on Railway and Render. |
-| `DB_PATH` | Recommended | `/data/panel.db` | SQLite file location. Mount a persistent volume at `/data` to keep data across restarts. |
+| `DOMAIN` | Recommended | `se7o-sna.up.railway.app` | Public domain, used to build subscription links correctly. Detected automatically from Railway's `RAILWAY_PUBLIC_DOMAIN` when unset. |
+| `DB_PATH` | Recommended | `/data/panel.db` | SQLite file location. Mount a Railway volume at `/data` to keep data across redeploys. |
 | `DATABASE_URL` | Optional | `postgres://…` | External PostgreSQL connection string. Overrides `DB_PATH`. |
-| `PORT` | Optional | `8080` | Listening port. Most platforms inject their own value. |
+| `PORT` | Optional | `8080` | Listening port. Railway injects its own value. |
 | `MTPROXY_ENABLED` | Optional | `true` | Set to `false` to run the panel without the Telegram proxy. |
 | `MTPROXY_PORT` | Optional | `443` | Port mtg binds to *inside* the container. This is the value you enter when creating the TCP proxy. |
 | `MTPROXY_FAKE_DOMAIN` | Optional | `www.cloudflare.com` | Domain the FakeTLS secret impersonates. |
 | `MTPROXY_SECRET` | Optional | `ee…` | Pin a specific secret instead of generating one. |
-| `MTPROXY_PUBLIC_HOST` | Optional | `shuttle.proxy.rlwy.net` | Override the public host, for platforms that do not expose it automatically. |
+| `MTPROXY_CONCURRENCY` | Optional | `4096` | Maximum concurrent MTProxy connections. |
+| `MTPROXY_PUBLIC_HOST` | Optional | `shuttle.proxy.rlwy.net` | Override the public host if it is not detected automatically. |
 | `MTPROXY_PUBLIC_PORT` | Optional | `15140` | Override the public port. |
 | `XHTTP_ENABLED` | Optional | `true` | Enable the XHTTP transport, served on the same HTTPS port. Defaults to `true`. |
 | `RAW_TCP_ENABLED` | Optional | `false` | Enable a second, plain `type=tcp` VLESS listener with no TLS/WS framing. Needs its own TCP proxy — see below. |
 | `RAW_TCP_PORT` | Optional | `8080` | Port the raw-TCP listener binds to *inside* the container. |
-| `RAW_TCP_PUBLIC_HOST` | Optional | `shuttle.proxy.rlwy.net` | Public host for the raw-TCP listener, for platforms that don't expose it automatically. |
+| `RAW_TCP_PUBLIC_HOST` | Optional | `shuttle.proxy.rlwy.net` | Public host for the raw-TCP listener. |
 | `RAW_TCP_PUBLIC_PORT` | Optional | `15141` | Public port for the raw-TCP listener. |
 
+The Aether-related variables are all optional and listed in the
+[Aether section](#6-aether-tunnel-optional).
+
 `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `SECRET_KEY` are read from the environment on **every**
-startup, not just the first one: if you change one in the platform dashboard and redeploy, it
-overrides whatever is currently stored in the database. Leave a variable unset to keep whatever
-is already stored (or, on a brand-new deployment, the built-in default).
+startup, not just the first one: if you change one in Railway and redeploy, it overrides whatever
+is currently stored in the database. Leave a variable unset to keep whatever is already stored
+(or, on a brand-new deployment, the built-in default).
+
+### 3. Keep your data
+
+Add a volume to the Railway service, mount it at `/data`, and set `DB_PATH=/data/panel.db`. The
+SQLite database, the generated MTProxy secret, and Aether's settings and binary directory all live
+under that path, so they survive redeploys. Without a volume, use `DATABASE_URL` pointing to a
+PostgreSQL instance instead; the application detects it at startup and uses it in place of SQLite.
 
 ### 4. Enable the Telegram proxy
 
-Railway can expose HTTP and TCP from the same service. In the service settings open
-**Networking → TCP Proxy** and enter the *internal* port `443` (or whatever `MTPROXY_PORT` is set
-to). Railway responds with a public address such as `shuttle.proxy.rlwy.net:15140`.
+In the Railway service settings open **Networking → TCP Proxy** and enter the *internal* port
+`443` (or whatever `MTPROXY_PORT` is set to). Railway responds with a public address such as
+`shuttle.proxy.rlwy.net:15140`.
 
 Nothing else is required. Railway injects `RAILWAY_TCP_PROXY_DOMAIN` and `RAILWAY_TCP_PROXY_PORT`
 into the container, the panel reads them, and the MTProxy tab shows the finished link:
@@ -141,26 +167,22 @@ tg://proxy?server=shuttle.proxy.rlwy.net&port=15140&secret=ee…
 
 The link must always carry that public address. The container's own IP is private and unreachable
 from the internet, so it never appears in the link. Until a TCP proxy exists the tab shows a
-warning and a provisional address.
+warning and a provisional address. If the variables are ever missing, set `MTPROXY_PUBLIC_HOST`
+and `MTPROXY_PUBLIC_PORT` yourself.
 
-On platforms that do not publish those variables, set `MTPROXY_PUBLIC_HOST` and
-`MTPROXY_PUBLIC_PORT` yourself.
+### 5. Enable extra transports (optional)
 
-### 6. Enable extra transports (optional)
-
-XHTTP works out of the box on the same HTTPS port — nothing to configure beyond
-`XHTTP_ENABLED=true` (the default). Generate a link with transport `xhttp` from the dashboard the
-same way you generate a `ws` link.
+WebSocket, XHTTP, and HTTP work out of the box on the same HTTPS port — nothing to configure
+beyond `XHTTP_ENABLED=true` (the default). Generate a link with transport `xhttp` or `http` from
+the dashboard the same way you generate a `ws` link.
 
 The raw-TCP transport is a second listener with its own port, so it needs the same kind of TCP
 proxy as MTProxy:
 
 1. Set `RAW_TCP_ENABLED=true` and, if you don't want the default, `RAW_TCP_PORT`.
 2. In **Networking → TCP Proxy**, add a second proxy pointed at that internal port.
-3. Put the public host/port Railway gives you into `RAW_TCP_PUBLIC_HOST` / `RAW_TCP_PUBLIC_PORT`.
-
-Render's standard web service only exposes a single HTTP port, so the raw-TCP transport does not
-work there — leave `RAW_TCP_ENABLED` off on Render.
+3. Put the public host and port Railway gives you into `RAW_TCP_PUBLIC_HOST` and
+   `RAW_TCP_PUBLIC_PORT`.
 
 **Railway TCP proxy budget.** A Railway project currently allows up to 3 TCP proxies and 2 public
 domains per service. This project uses them like this:
@@ -169,43 +191,82 @@ domains per service. This project uses them like this:
 |---|---|---|---|
 | 1 | MTProxy | `MTPROXY_PORT` (443) | `MTPROXY_PUBLIC_HOST` / `MTPROXY_PUBLIC_PORT` |
 | 2 | Raw-TCP VLESS | `RAW_TCP_PORT` (8080) | `RAW_TCP_PUBLIC_HOST` / `RAW_TCP_PUBLIC_PORT` |
-| 3 | *free* | — | reserved for a second raw-TCP-style listener later (see below) |
+| 3 | *free* | — | not used by the panel today |
+
+Aether's SOCKS5 listener binds to `127.0.0.1` only, so it needs no TCP proxy.
 
 **Using the second public domain.** Railway can also give a service a second public HTTP domain
-(Settings → Networking → Public Networking → "+ Domain"). You don't need any new code for this —
-the panel already lets every link carry its own `Host` / `SNI` (Advanced Options, or
-`custom_host` / `custom_sni` via the API). Point new `ws` or `xhttp` links at the second domain by
-filling those two fields with it; the panel keeps serving both domains from the same process, so
-if one domain gets blocked you can immediately hand out links on the other without redeploying
-anything.
+(Settings → Networking → Public Networking → "+ Domain"). No new code is needed — every link can
+carry its own `Host` / `SNI` (Advanced Options, or `custom_host` / `custom_sni` via the API). Point
+new `ws` or `xhttp` links at the second domain by filling those two fields with it; the panel
+serves both domains from the same process, so if one domain gets blocked you can immediately hand
+out links on the other without redeploying anything.
 
-**Using the third TCP proxy slot.** The current raw-TCP listener is a single instance bound to one
-port (`RAW_TCP_PORT`). If you want a *second* raw-TCP endpoint later (for example to compare
-reachability across ISPs, or as a fallback if one gets throttled), that needs a second listener
-process/port in code — it isn't exposed as a setting today. Ask if you want that added; it would
-reuse the same `raw_tcp` service on a second configurable port.
+### 6. Aether tunnel (optional)
+
+Aether is a Cloudflare-based tunnel client. The Docker image ships a pinned, sha256-verified
+release (`v1.5.0`, amd64 and arm64) at `/usr/local/bin/aether`. If the binary is missing, the
+**Install** button in the Aether tab downloads and verifies it for you.
+
+1. Open the **Aether** tab and press **Start**. Wait until the phase reads `connected`.
+2. Choose an **Exit mode** and save it:
+
+| Mode | Behaviour |
+|------|-----------|
+| `direct` (default) | Connections leave straight from the server's IP, as if Aether were not there. |
+| `auto` | Through Aether while it is connected, directly otherwise. |
+| `aether` | Always through Aether. If the tunnel is down, connections are **refused** (fail-closed), so the server's IP never leaks. |
+
+3. Optionally enable **auto start** so the tunnel comes up after every restart.
+
+The tab also lets you pick the protocol (`masque`, `wg`, `gool`, `mim`), transport (`h2`, `h3`),
+scan mode (`turbo`, `balanced`, `thorough`, `verified`, `ironclad`), IP family (`4`, `6`, `dual`),
+noize profile, local SOCKS port, and an optional local HTTP proxy. A watchdog probes the tunnel
+through its SOCKS5 port, restarts it with exponential backoff, and falls back to the last known-good
+preset after repeated failed starts. Enable the **Tunnel down** event in the Telegram tab to be
+notified.
+
+Aether carries TCP only; UDP does not go through it. While Aether is scanning or connecting for the
+first time in `aether` mode, user connections are refused.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `AETHER_OUTBOUND` | *(panel setting)* | `direct`, `auto`, or `aether`. When set, it overrides the choice saved in the panel. |
+| `AETHER_AUTO_START` | *(panel setting)* | `1` to start the tunnel automatically after every restart. |
+| `AETHER_BIN` | `/usr/local/bin/aether` | Path to the Aether binary. |
+| `AETHER_DIR` | `<DB directory>/aether` | Where Aether keeps its working files and downloaded binary. |
+| `AETHER_VERSION` | `v1.5.0` | Release used by the in-panel **Install** button. |
+| `WATCHDOG_TICK_SEC` | `5` | How often the watchdog loop wakes up. |
+| `WATCHDOG_INTERVAL_SEC` | `30` | Seconds between health probes. |
+| `WATCHDOG_MAX_FAILURES` | `3` | Failed probes in a row before a restart. |
+| `WATCHDOG_STUCK_SEC` | `300` | Restart if the tunnel is stuck in a non-connected phase this long. |
+| `WATCHDOG_STABLE_SEC` | `60` | Time connected before a run counts as stable. |
+| `WATCHDOG_FALLBACK_AFTER` | `3` | Failed starts before falling back to the last known-good preset. |
+| `WATCHDOG_BACKOFF_BASE_SEC` | `2` | First restart delay; doubles on each failure. |
+| `WATCHDOG_BACKOFF_MAX_SEC` | `300` | Upper limit for the restart delay. |
+| `WATCHDOG_PROBE_TIMEOUT_SEC` | `10` | Timeout of a single probe. |
+
+More background on how Aether was merged into this panel is in
+[`AETHER-MERGE.md`](AETHER-MERGE.md) (Persian).
 
 ### 7. Sign in
 
 Open your deployment URL at `/panel` and log in with `ADMIN_USERNAME` and `ADMIN_PASSWORD`.
 Changing the password from **Settings** afterwards takes effect immediately and persists in the
-database — just don't leave a stale `ADMIN_PASSWORD` env var set to the old value, since that
-will overwrite your in-panel change back on the next redeploy.
+database — just don't leave a stale `ADMIN_PASSWORD` variable set to the old value, since that
+will overwrite your in-panel change on the next redeploy.
 
 ---
-
-## Data persistence
-
-Platforms with volume support keep the SQLite database across restarts — mount the volume at
-`/data` and set `DB_PATH=/data/panel.db`. Where volumes are unavailable, set `DATABASE_URL` to an
-external PostgreSQL instance instead; the application detects it at startup and uses it in place
-of SQLite.
 
 ## Repository layout
 
 | Path | Purpose |
 |------|---------|
 | `main.py` | Entry point: logging, lifespan, app factory, and router registration. |
+| `Dockerfile` | Builds the image with the `mtg` and pinned Aether binaries included. |
+| `Procfile` | `web: python main.py` fallback start command. |
+| `SE7O-SNA-config.toml` | Commented list of every environment variable to copy into Railway. |
+| `AETHER-MERGE.md` | Notes on the Aether integration (Persian). |
 | `app/config.py` | Environment-driven configuration singleton. |
 | `app/database.py` | Async SQLite/PostgreSQL abstraction and schema. |
 | `app/state.py` | Centralized in-memory state and event log. |
@@ -213,16 +274,22 @@ of SQLite.
 | `app/vless.py` | VLESS link generation, subscription content, and header parsing. |
 | `app/utils.py` | Pure formatting and validation helpers. |
 | `app/models.py` | Pydantic request models. |
-| `app/routes/` | HTTP and WebSocket endpoints, grouped by domain. |
-| `app/services/` | Background loops: traffic, keep-alive, Telegram, link expiry. |
+| `app/routes/` | HTTP and WebSocket endpoints, grouped by domain (auth, links, addresses, stats, settings, subscription, backup, mtproxy, panel, transports, aether). |
+| `app/routes/tunnel.py` | WebSocket, XHTTP, and HTTP VLESS tunnel endpoints — the core proxy engine. |
+| `app/routes/aether.py` | Aether control API under `/api/aether/*`. |
+| `app/services/` | Background loops and helpers: traffic, keep-alive, Telegram, link expiry. |
 | `app/services/mtproxy.py` | MTProto proxy supervisor, secret handling, link building. |
 | `app/services/raw_tcp.py` | Raw-TCP VLESS listener (`type=tcp`), independent of the main HTTP port. |
-| `app/routes/tunnel.py` | WebSocket and XHTTP VLESS tunnel endpoints — the core proxy engine. |
+| `app/services/aether.py` | Aether process manager: install, start/stop, log parsing, watchdog. |
+| `app/services/upstream.py` | Single outbound connector used by every transport (direct or via Aether SOCKS5). |
 | `app/templates/panel_html.py` | The embedded single-page admin frontend. |
 | `app/templates/user_html.py` | The public per-user subscription page. |
-| `app/static/img/` | Optimized logo and favicon assets. |
+| `app/static/img/`, `img/` | Logo and favicon assets. |
 | `smoke_test.py` | End-to-end test suite against a running instance. |
-| `test_mtproxy.py` | Unit tests for secrets, endpoint resolution and the supervisor. |
+| `test_mtproxy.py` | Unit tests for secrets, endpoint resolution, and the MTProxy supervisor. |
+| `test_upstream.py` | Unit tests for the outbound connector, Aether log parsing, and the watchdog. |
+| `test_linkgen.py`, `test_audit_transports.py` | Check that generated links match the endpoints the server serves. |
+| `test_endpoints_defined.py` | Checks that every transport and `/api/aether/*` route is registered. |
 
 ## Local development
 
@@ -233,33 +300,28 @@ DB_PATH=./panel.db ADMIN_USERNAME=admin ADMIN_PASSWORD=Test1234 python main.py
 
 The panel is then served at `http://127.0.0.1:8080/panel`.
 
-To run the test suite, start the server on port 8899 with username `se7oadmin` and password
+To run the end-to-end suite, start the server on port 8899 with username `se7oadmin` and password
 `Test1234`, then run:
 
 ```bash
 python smoke_test.py
 ```
 
-The MTProxy unit tests need no server and no Docker:
+The remaining tests need no running server and no Docker:
 
 ```bash
 python test_mtproxy.py
+python test_upstream.py
+python test_linkgen.py
+python test_audit_transports.py
+python test_endpoints_defined.py   # needs requirements installed
 ```
 
 ## Bandwidth costs
 
-The panel is free; outbound bandwidth is billed by your hosting provider. Approximate figures,
-subject to change — always confirm on the provider's pricing page.
-
-| Platform | Included bandwidth | Cost per extra GB |
-|----------|--------------------|-------------------|
-| Railway  | Pay as you go | ~$0.10 |
-| Render   | 5 GB / month | ~$0.10 |
-| Back4app | 100 GB / month | See provider |
-| Dockfly  | Not specified | See provider |
-| Scalingo | Not specified | See provider |
-
-Use per-inbound quotas to keep consumption predictable.
+The panel is free; outbound bandwidth is billed by Railway. At the time of writing that is roughly
+$0.10 per GB on pay-as-you-go usage, but pricing changes — always confirm on Railway's pricing
+page. Use per-inbound quotas to keep consumption predictable.
 
 ---
 
@@ -271,10 +333,17 @@ of hosting providers through duplicate accounts. You are solely responsible for 
 for compliance with your provider's terms of service. The author accepts no liability for
 damages, billing overages, or service violations.
 
+## Credits
+
+Original project by **Standing In Heaven**. Maintained and updated by
+[soroushse7o](https://github.com/soroushse7o).
+
 ## Acknowledgements
 
 Built with [FastAPI](https://fastapi.tiangolo.com/). Charts by [Chart.js](https://www.chartjs.org/).
-Icons are inline SVG in the Lucide/Feather style, themed with `currentColor`.
+Icons are inline SVG in the Lucide/Feather style, themed with `currentColor`. The tunnel client is
+[Aether](https://github.com/CluvexStudio/Aether), and the Telegram proxy is
+[mtg](https://github.com/9seconds/mtg).
 
 ## License
 
