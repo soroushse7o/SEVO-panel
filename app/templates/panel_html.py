@@ -254,6 +254,7 @@ textarea.fi{resize:vertical;min-height:90px;}
           <button class="nav-link" data-page="logs"><svg class="ic"><use href="#ic-logs"/></svg> <span data-en="Logs" data-fa="لاگ‌ها">Logs</span></button>
           <button class="nav-link" data-page="telegram"><svg class="ic"><use href="#ic-telegram"/></svg> <span data-en="Telegram" data-fa="تلگرام">Telegram</span></button>
           <button class="nav-link" data-page="aether"><svg class="ic"><use href="#ic-bolt"/></svg> <span data-en="Aether" data-fa="Aether">Aether</span></button>
+          <button class="nav-link" data-page="endpoints"><svg class="ic"><use href="#ic-refresh"/></svg> <span data-en="Best Endpoint" data-fa="پیدا کردن بهترین اندپوینت">Best Endpoint</span></button>
           <button class="nav-link" data-page="mtproxy"><svg class="ic"><use href="#ic-bolt"/></svg> <span data-en="MTProxy" data-fa="ام‌تی پراکسی">MTProxy</span></button>
           <button class="nav-link" data-page="settings"><svg class="ic"><use href="#ic-settings"/></svg> <span data-en="Settings" data-fa="تنظیمات">Settings</span></button>
         </nav>
@@ -436,12 +437,11 @@ example.com"></textarea></div>
         </div>
         <div id="ae-info" style="font-size:.85rem;color:var(--text2);margin-top:8px;line-height:1.8;direction:ltr;text-align:left;"></div>
         <div id="ae-err" style="display:none;margin-top:8px;color:var(--red);font-size:.85rem;direction:ltr;text-align:left;"></div>
-        <div id="ae-nobin" style="display:none;margin-top:8px;color:var(--yellow);font-size:.85rem;" data-en="Aether binary not found. Click Install to download the pinned release." data-fa="فایل اجرایی Aether پیدا نشد. روی Install بزنید.">Aether binary not found. Click Install to download the pinned release.</div>
+        <div id="ae-nobin" style="display:none;margin-top:8px;color:var(--yellow);font-size:.85rem;" data-en="Aether binary not found. It ships with the Docker image (set AETHER_BIN if you installed it elsewhere)." data-fa="فایل اجرایی Aether پیدا نشد. این فایل در ایمیج Docker موجود است (در غیر این صورت AETHER_BIN را تنظیم کنید).">Aether binary not found. It ships with the Docker image (set AETHER_BIN if you installed it elsewhere).</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
           <button class="btn btn-primary btn-sm" onclick="aeStart()" data-en="Start" data-fa="شروع">Start</button>
           <button class="btn btn-outline btn-sm" onclick="aeRestart()" data-en="Restart" data-fa="ریستارت">Restart</button>
           <button class="btn btn-danger btn-sm" onclick="aeStop()" data-en="Stop" data-fa="توقف">Stop</button>
-          <button class="btn btn-outline btn-sm" onclick="aeInstall()" data-en="Install" data-fa="نصب">Install</button>
         </div>
       </div>
 
@@ -449,14 +449,12 @@ example.com"></textarea></div>
         <div style="font-weight:700;margin-bottom:10px;" data-en="Tunnel options" data-fa="تنظیمات تونل">Tunnel options</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
           <div class="fg"><label class="fl">Protocol</label><select class="fi" id="ae-protocol"></select></div>
-          <div class="fg"><label class="fl">Transport</label><select class="fi" id="ae-transport"></select></div>
           <div class="fg"><label class="fl">Scan</label><select class="fi" id="ae-scan"></select></div>
           <div class="fg"><label class="fl">IP</label><select class="fi" id="ae-ip"></select></div>
           <div class="fg"><label class="fl">Noize</label><select class="fi" id="ae-noize"></select></div>
           <div class="fg"><label class="fl">Port</label><input class="fi" type="number" id="ae-port" min="1024" max="65534" value="1819"></div>
         </div>
         <div style="display:flex;gap:18px;flex-wrap:wrap;">
-          <label><input type="checkbox" id="ae-httpproxy"> HTTP proxy (port+1)</label>
           <label><input type="checkbox" id="ae-quick" checked> Quick reconnect</label>
         </div>
       </div>
@@ -486,6 +484,50 @@ example.com"></textarea></div>
       </div>
     </section>
 
+    <section class="page" id="page-endpoints">
+      <div class="page-header">
+        <div>
+          <div class="page-title" data-en="Best Endpoint Finder" data-fa="پیدا کردن بهترین اندپوینت">Best Endpoint Finder</div>
+          <div class="page-sub" data-en="Network diagnosis and latency test, measured from this server" data-fa="تشخیص شبکه و تست تاخیر، اندازه‌گیری‌شده از روی همین سرور">Network diagnosis and latency test, measured from this server</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="fg"><label class="fl" data-en="Targets (IP, hostname or CIDR; one per line)" data-fa="هدف‌ها (آی‌پی، دامنه یا CIDR؛ هر خط یکی)">Targets (IP, hostname or CIDR; one per line)</label>
+          <textarea class="fi" id="ef-targets" rows="5" placeholder="104.16.0.0/13&#10;162.159.1.1&#10;blog.railway.com" style="direction:ltr;text-align:left;font-family:monospace;"></textarea></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <button class="btn btn-outline btn-sm" onclick="efPreset('cf')" data-en="Cloudflare ranges" data-fa="رنج‌های کلودفلر">Cloudflare ranges</button>
+          <button class="btn btn-outline btn-sm" onclick="efPreset('clean')" data-en="My Clean IP list" data-fa="لیست آی‌پی تمیز من">My Clean IP list</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;">
+          <div class="fg"><label class="fl" data-en="Test type" data-fa="نوع تست">Test type</label>
+            <select class="fi" id="ef-mode">
+              <option value="tls">TLS handshake</option>
+              <option value="tcp">TCP connect</option>
+              <option value="http">HTTP trace (Cloudflare colo)</option>
+            </select></div>
+          <div class="fg"><label class="fl">Port</label><input class="fi" type="number" id="ef-port" min="1" max="65535" value="443"></div>
+          <div class="fg"><label class="fl">SNI / Host</label><input class="fi" id="ef-sni" placeholder="example.com" style="direction:ltr;text-align:left;"></div>
+          <div class="fg"><label class="fl" data-en="Attempts" data-fa="تعداد تلاش">Attempts</label><input class="fi" type="number" id="ef-attempts" min="1" max="10" value="3"></div>
+          <div class="fg"><label class="fl" data-en="Timeout (s)" data-fa="تایم‌اوت (ثانیه)">Timeout (s)</label><input class="fi" type="number" id="ef-timeout" min="1" max="10" value="4"></div>
+          <div class="fg"><label class="fl" data-en="Random IPs per CIDR" data-fa="آی‌پی تصادفی از هر CIDR">Random IPs per CIDR</label><input class="fi" type="number" id="ef-sample" min="1" max="256" value="10"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+          <button class="btn btn-primary btn-sm" id="ef-start" onclick="efStart()" data-en="Start test" data-fa="شروع تست">Start test</button>
+          <button class="btn btn-danger btn-sm" id="ef-cancel" onclick="efCancel()" style="display:none;" data-en="Cancel" data-fa="لغو">Cancel</button>
+          <button class="btn btn-outline btn-sm" onclick="efAddBest()" data-en="Add best 5 to Clean IP" data-fa="افزودن ۵ مورد برتر به آی‌پی تمیز">Add best 5 to Clean IP</button>
+        </div>
+        <div id="ef-status" style="font-size:.85rem;color:var(--text2);margin-top:10px;"></div>
+        <div style="height:6px;background:var(--border);border-radius:4px;margin-top:6px;overflow:hidden;"><div id="ef-bar" style="height:100%;width:0;background:var(--primary);transition:width .3s;"></div></div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="tbl-wrap"><table class="tbl"><thead><tr>
+          <th>#</th><th data-en="Endpoint" data-fa="اندپوینت">Endpoint</th><th data-en="Avg ms" data-fa="میانگین">Avg ms</th><th>Min</th><th>Max</th><th data-en="Jitter" data-fa="جیتر">Jitter</th><th data-en="Loss" data-fa="افت">Loss</th><th data-en="Detail" data-fa="جزئیات">Detail</th><th></th>
+        </tr></thead><tbody id="ef-tbody"></tbody></table></div>
+        <div class="empty" id="ef-empty" style="padding:30px;" data-en="No results yet" data-fa="هنوز نتیجه‌ای نیست">No results yet</div>
+      </div>
+    </section>
     <section class="page" id="page-telegram">
       <div class="page-header"><div class="page-title" data-en="Telegram Bot" data-fa="ربات تلگرام">Telegram Bot</div></div>
       <div class="card">
@@ -623,6 +665,7 @@ example.com"></textarea></div>
       <div class="nav-item" data-page="logs" onclick="switchPage('logs')"><span class="nav-icon"><svg class="ic"><use href="#ic-logs"/></svg></span><span data-en="Logs" data-fa="لاگ">Logs</span></div>
       <div class="nav-item" data-page="telegram" onclick="switchPage('telegram')"><span class="nav-icon"><svg class="ic"><use href="#ic-telegram"/></svg></span><span data-en="Bot" data-fa="ربات">Bot</span></div>
       <div class="nav-item" data-page="aether" onclick="switchPage('aether')"><span class="nav-icon"><svg class="ic"><use href="#ic-bolt"/></svg></span><span data-en="Aether" data-fa="Aether">Aether</span></div>
+      <div class="nav-item" data-page="endpoints" onclick="switchPage('endpoints')"><span class="nav-icon"><svg class="ic"><use href="#ic-refresh"/></svg></span><span data-en="Endpoint" data-fa="اندپوینت">Endpoint</span></div>
       <div class="nav-item" data-page="mtproxy" onclick="switchPage('mtproxy')"><span class="nav-icon"><svg class="ic"><use href="#ic-bolt"/></svg></span><span data-en="MTProxy" data-fa="پراکسی">MTProxy</span></div>
       <div class="nav-item" data-page="settings" onclick="switchPage('settings')"><span class="nav-icon"><svg class="ic"><use href="#ic-settings"/></svg></span><span data-en="Settings" data-fa="تنظیمات">Settings</span></div>
     </div>
@@ -674,6 +717,16 @@ example.com"></textarea></div>
             <option value="chacha20-poly1305">chacha20-poly1305</option>
             <option value="zero">zero</option>
           </select>
+        </div>
+        <div class="fg"><label class="fl" data-en="Outbound (traffic exit)" data-fa="خروجی ترافیک">Outbound (traffic exit)</label>
+          <select class="fs" id="a-ob" onchange="obToggle('a')">
+            <option value="default">Default (follow global mode)</option>
+            <option value="direct">Direct (this server's IP)</option>
+            <option value="aether">Cloudflare WARP (Aether, fail-closed)</option>
+            <option value="auto">WARP if connected, else direct</option>
+            <option value="socks5">Custom SOCKS5 proxy</option>
+          </select>
+          <input class="fi" id="a-ob-proxy" placeholder="socks5://user:pass@host:1080" style="display:none;margin-top:5px;direction:ltr;text-align:left;">
         </div>
         <div class="fg"><label class="fl">Path</label><input class="fi" id="ap" placeholder="/ws/{uid}"></div>
         <div class="fg"><label class="fl">SNI</label><input class="fi" id="asni" placeholder="example.com"></div>
@@ -749,6 +802,16 @@ example.com"></textarea></div>
             <option value="zero">zero</option>
           </select>
         </div>
+        <div class="fg"><label class="fl" data-en="Outbound (traffic exit)" data-fa="خروجی ترافیک">Outbound (traffic exit)</label>
+          <select class="fs" id="e-ob" onchange="obToggle('e')">
+            <option value="default">Default (follow global mode)</option>
+            <option value="direct">Direct (this server's IP)</option>
+            <option value="aether">Cloudflare WARP (Aether, fail-closed)</option>
+            <option value="auto">WARP if connected, else direct</option>
+            <option value="socks5">Custom SOCKS5 proxy</option>
+          </select>
+          <input class="fi" id="e-ob-proxy" placeholder="socks5://user:pass@host:1080" style="display:none;margin-top:5px;direction:ltr;text-align:left;">
+        </div>
         <div class="fg"><label class="fl">Path</label><input class="fi" id="ep"></div>
         <div class="fg"><label class="fl">SNI</label><input class="fi" id="esni"></div>
         <div class="fg"><label class="fl">Host</label><input class="fi" id="ehost"></div>
@@ -813,6 +876,9 @@ example.com"></textarea></div>
 </div>
 
 <script>
+/* Secret admin path: the server injects "/<SECRET_PATH>" here. Every admin API call is sent under it. */
+const BASE='__SE7O_BASE__';
+(function(){const of=window.fetch.bind(window);window.fetch=function(u,o){if(typeof u==='string'&&BASE&&/^\/(api|stats|connections)(\/|\?|$)/.test(u))u=BASE+u;return of(u,o);};})();
 const $=s=>document.querySelector(s),$m=id=>document.getElementById(id);
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function svgic(name){return '<svg class="ic" style="width:1em;height:1em;vertical-align:-0.15em"><use href="#ic-'+name+'"/></svg>';}
@@ -1129,7 +1195,7 @@ function startPanelClock() {
 async function doLogin(){const u=$m('login-user').value.trim();const pw=$m('login-pw').value;$m('login-err').style.display='none';try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:pw})});if(r.ok){$m('login-pw').value='';showDashboard();}else $m('login-err').style.display='block';}catch{console.error('Login error');$m('login-err').style.display='block';}}
 async function doLogout(){await fetch('/api/logout',{method:'POST'});showLogin();}
 document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.addEventListener('click',()=>{switchPage(el.dataset.page);document.getElementById('mainNav').classList.remove('open');}));
-function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$m('page-'+id).classList.add('active');if(id==='mtproxy')loadMtproxy();if(id==='aether')startAether();else stopAetherPoll();document.querySelectorAll('.nav-link').forEach(n=>n.classList.toggle('active',n.dataset.page===id));document.querySelectorAll('.mobile-nav .nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===id));}
+function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$m('page-'+id).classList.add('active');if(id==='mtproxy')loadMtproxy();if(id==='aether')startAether();else stopAetherPoll();if(id==='endpoints')efLoadPresets();document.querySelectorAll('.nav-link').forEach(n=>n.classList.toggle('active',n.dataset.page===id));document.querySelectorAll('.mobile-nav .nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===id));}
 document.getElementById('hamburger-btn')?.addEventListener('click',function(e){e.stopPropagation();document.getElementById('mainNav').classList.toggle('open');});
 function toast(msg,err=false){const t=$m('toast');t.textContent=msg;t.className='toast'+(err?' err':'')+' show';clearTimeout(t._hide);t._hide=setTimeout(()=>t.classList.remove('show'),3000);}
 function fmtB(b){if(!b||b===0)return'0 B';return b>=1073741824?(b/1073741824).toFixed(2)+' GB':b>=1048576?(b/1048576).toFixed(2)+' MB':(b/1024).toFixed(1)+' KB';}
@@ -1140,17 +1206,66 @@ let aeTimer=null,aeFilled=false;
 function aeEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 async function aeApi(path,body){try{const r=await fetch('/api/aether/'+path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});if(r.status===401){showLogin();return null;}let d={};try{d=await r.json();}catch(e){}if(!r.ok||d.ok===false){toast(d.error||('Error '+r.status),true);return null;}return d;}catch(e){toast('Error',true);return null;}}
 function aeFmtSec(s){if(s==null)return '—';s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h>0?h+'h '+m+'m':m>0?m+'m '+(s%60)+'s':s+'s';}
-function aeFillForm(s){const sch=s.options_schema||{};const fill=(id,list)=>{const el=$m(id);if(!el||el.options.length)return;(list||[]).forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;el.appendChild(o);});};fill('ae-protocol',sch.protocol);fill('ae-transport',sch.transport);fill('ae-scan',sch.scan);fill('ae-ip',sch.ip);fill('ae-noize',sch.noize);const o=s.saved_options||s.options||s.default_options||{};const set=(id,v)=>{const e=$m(id);if(e&&v!==undefined)e.value=v;};set('ae-protocol',o.protocol);set('ae-transport',o.transport);set('ae-scan',o.scan);set('ae-ip',o.ip);set('ae-noize',o.noize);set('ae-port',o.port);$m('ae-httpproxy').checked=!!o.http_proxy;$m('ae-quick').checked=o.quick_reconnect!==false;$m('ae-mode').value=s.outbound_mode||'direct';$m('ae-auto').checked=!!s.auto_start;aeFilled=true;}
-function aeReadForm(){return{protocol:$m('ae-protocol').value,transport:$m('ae-transport').value,scan:$m('ae-scan').value,ip:$m('ae-ip').value,noize:$m('ae-noize').value,port:parseInt($m('ae-port').value,10),http_proxy:$m('ae-httpproxy').checked,quick_reconnect:$m('ae-quick').checked};}
-function aeRender(s){if(!aeFilled)aeFillForm(s);const col={connected:'var(--green)',error:'var(--red)',stopped:'var(--text3)'}[s.phase]||'var(--yellow)';$m('ae-phase').innerHTML='<span style="color:'+col+'">● '+aeEsc(s.phase)+'</span>';const act=s.outbound_active;$m('ae-out').innerHTML='Outbound: <b>'+aeEsc(s.outbound_mode)+'</b> '+(act?'<span style="color:var(--green)">(users exit via Aether)</span>':'<span style="color:var(--text3)">(users exit directly)</span>');const ex=s.exit;let info=[];if(s.running&&s.options)info.push('SOCKS5 127.0.0.1:'+s.options.port+' · '+s.options.protocol+'/'+s.options.transport+' · scan '+s.options.scan);if(s.gateway)info.push('Gateway: '+aeEsc(s.gateway));if(ex)info.push('Exit: '+aeEsc(ex.ip)+' · '+aeEsc(ex.country)+' via '+aeEsc(ex.colo)+' · '+ex.latency_ms+' ms'+(ex.warp?' · warp '+aeEsc(ex.warp):''));if(s.uptime_sec!=null)info.push('Connected for '+aeFmtSec(s.uptime_sec));if(s.pid)info.push('PID '+s.pid);$m('ae-info').innerHTML=info.join('<br>');const er=$m('ae-err');er.style.display=s.last_error&&s.phase!=='connected'?'block':'none';er.textContent=s.last_error||'';$m('ae-nobin').style.display=s.binary?'none':'block';const note={direct:'Panel users connect from this server\'s own IP (default behaviour).',auto:'Users exit via Aether while it is connected; otherwise they connect directly (the server IP may be exposed during outages).',aether:'Fail-closed: if the tunnel is down, user connections are refused instead of leaking the server IP.'};$m('ae-mode-note').textContent=note[$m('ae-mode').value]||'';const w=s.watchdog||{};$m('ae-wd').innerHTML=(w.enabled?'enabled':'disabled')+' · restarts '+(w.restarts||0)+' · failed checks '+(w.consecutive_failures||0)+'/'+(w.max_failures||0)+(w.last_check_ok===true?' · last check OK':w.last_check_ok===false?' · last check FAILED':'')+(w.next_restart_in_sec!=null?' · restart in '+w.next_restart_in_sec+'s':'')+(w.last_reason?'<br>Last reason: '+aeEsc(w.last_reason):'')+(s.last_good?'<br>Known-good preset saved':'');const lg=$m('ae-logs');const atBottom=lg.scrollTop+lg.clientHeight>=lg.scrollHeight-24;const lc={error:'var(--red)',warn:'var(--yellow)'};lg.innerHTML=(s.logs||[]).map(l=>'<span style="color:'+(lc[l.level]||'var(--text2)')+'">'+aeEsc(l.text)+'</span>').join('\n');if(atBottom)lg.scrollTop=lg.scrollHeight;}
+function aeFillForm(s){const sch=s.options_schema||{};const fill=(id,list)=>{const el=$m(id);if(!el||el.options.length)return;(list||[]).forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;el.appendChild(o);});};fill('ae-protocol',sch.protocol);fill('ae-scan',sch.scan);fill('ae-ip',sch.ip);fill('ae-noize',sch.noize);const o=s.saved_options||s.options||s.default_options||{};const set=(id,v)=>{const e=$m(id);if(e&&v!==undefined)e.value=v;};set('ae-protocol',o.protocol);set('ae-scan',o.scan);set('ae-ip',o.ip);set('ae-noize',o.noize);set('ae-port',o.port);$m('ae-quick').checked=o.quick_reconnect!==false;$m('ae-mode').value=s.outbound_mode||'direct';$m('ae-auto').checked=!!s.auto_start;aeFilled=true;}
+function aeReadForm(){return{protocol:$m('ae-protocol').value,transport:'h2',scan:$m('ae-scan').value,ip:$m('ae-ip').value,noize:$m('ae-noize').value,port:parseInt($m('ae-port').value,10),quick_reconnect:$m('ae-quick').checked};}
+function aeRender(s){if(!aeFilled)aeFillForm(s);const col={connected:'var(--green)',error:'var(--red)',stopped:'var(--text3)'}[s.phase]||'var(--yellow)';$m('ae-phase').innerHTML='<span style="color:'+col+'">● '+aeEsc(s.phase)+'</span>';const act=s.outbound_active;$m('ae-out').innerHTML='Outbound: <b>'+aeEsc(s.outbound_mode)+'</b> '+(act?'<span style="color:var(--green)">(users exit via Aether)</span>':'<span style="color:var(--text3)">(users exit directly)</span>');const ex=s.exit;let info=[];if(s.running&&s.options)info.push('SOCKS5 127.0.0.1:'+s.options.port+' · '+s.options.protocol+' · scan '+s.options.scan);if(s.gateway)info.push('Gateway: '+aeEsc(s.gateway));if(ex)info.push('Exit: '+aeEsc(ex.ip)+' · '+aeEsc(ex.country)+' via '+aeEsc(ex.colo)+' · '+ex.latency_ms+' ms'+(ex.warp?' · warp '+aeEsc(ex.warp):''));if(s.uptime_sec!=null)info.push('Connected for '+aeFmtSec(s.uptime_sec));if(s.pid)info.push('PID '+s.pid);$m('ae-info').innerHTML=info.join('<br>');const er=$m('ae-err');er.style.display=s.last_error&&s.phase!=='connected'?'block':'none';er.textContent=s.last_error||'';$m('ae-nobin').style.display=s.binary?'none':'block';const note={direct:'Panel users connect from this server\'s own IP (default behaviour).',auto:'Users exit via Aether while it is connected; otherwise they connect directly (the server IP may be exposed during outages).',aether:'Fail-closed: if the tunnel is down, user connections are refused instead of leaking the server IP.'};$m('ae-mode-note').textContent=note[$m('ae-mode').value]||'';const w=s.watchdog||{};$m('ae-wd').innerHTML=(w.enabled?'enabled':'disabled')+' · restarts '+(w.restarts||0)+' · failed checks '+(w.consecutive_failures||0)+'/'+(w.max_failures||0)+(w.last_check_ok===true?' · last check OK':w.last_check_ok===false?' · last check FAILED':'')+(w.next_restart_in_sec!=null?' · restart in '+w.next_restart_in_sec+'s':'')+(w.last_reason?'<br>Last reason: '+aeEsc(w.last_reason):'')+(s.last_good?'<br>Known-good preset saved':'');const lg=$m('ae-logs');const atBottom=lg.scrollTop+lg.clientHeight>=lg.scrollHeight-24;const lc={error:'var(--red)',warn:'var(--yellow)'};lg.innerHTML=(s.logs||[]).map(l=>'<span style="color:'+(lc[l.level]||'var(--text2)')+'">'+aeEsc(l.text)+'</span>').join('\n');if(atBottom)lg.scrollTop=lg.scrollHeight;}
 async function loadAether(){const s=await aeApi('status');if(s)aeRender(s);}
 function startAether(){aeFilled=false;loadAether();stopAetherPoll();aeTimer=setInterval(loadAether,3000);}
 function stopAetherPoll(){if(aeTimer){clearInterval(aeTimer);aeTimer=null;}}
 async function aeStart(){const d=await aeApi('start',aeReadForm());if(d){toast('Starting…');loadAether();}}
 async function aeRestart(){const d=await aeApi('restart',aeReadForm());if(d){toast('Restarting…');loadAether();}}
 async function aeStop(){const d=await aeApi('stop',{});if(d){toast('Stopped');loadAether();}}
-async function aeInstall(){toast('Downloading Aether…');const d=await aeApi('install',{});if(d){toast('Installed '+(d.version||''));loadAether();}}
 async function aeSaveSettings(){const d=await aeApi('settings',{outbound_mode:$m('ae-mode').value,auto_start:$m('ae-auto').checked});if(d){toast('Saved');loadAether();}}
+/* ---- per-inbound outbound routing ---- */
+function obToggle(p){const sel=$m(p+'-ob'),inp=$m(p+'-ob-proxy');inp.style.display=sel.value==='socks5'?'block':'none';}
+function obRead(p){const v=$m(p+'-ob').value;if(v!=='socks5')return v;const u=$m(p+'-ob-proxy').value.trim();if(!/^socks5h?:\/\/.+:\d+$/i.test(u)){toast('Proxy must look like socks5://host:port',true);return null;}return u;}
+function obWrite(p,val){const sel=$m(p+'-ob'),inp=$m(p+'-ob-proxy');val=val||'default';if(['default','direct','aether','auto'].includes(val)){sel.value=val;inp.value='';}else{sel.value='socks5';inp.value=val;}obToggle(p);}
+function obTag(v){v=v||'default';if(v==='default')return '';const lab={direct:'direct',aether:'WARP',auto:'WARP/auto'}[v]||'proxy';return '<span class="tag" style="background:var(--primary-dim);color:var(--text2);font-size:.65em;" title="Outbound: '+esc(v.replace(/\/\/[^@\/]*@/,'//'))+'">→ '+lab+'</span>';}
+/* ---- Best Endpoint Finder ---- */
+let efJob=null,efTimer=null,efRows=[],efPresets=null;
+async function efLoadPresets(){if(efPresets)return efPresets;try{const r=await fetch('/api/endpoints/presets');if(r.ok){efPresets=await r.json();if(!$m('ef-sni').value)$m('ef-sni').value=efPresets.default_sni||'';}}catch(e){}return efPresets;}
+async function efPreset(k){const p=await efLoadPresets();if(!p)return;const ta=$m('ef-targets');if(k==='cf')ta.value=p.cloudflare_ranges.join('\n');else ta.value=(p.clean_ips||[]).filter(a=>!/\//.test(a)).join('\n');}
+function efSet(txt){$m('ef-status').textContent=txt;}
+async function efStart(){
+  await efLoadPresets();
+  const body={targets:$m('ef-targets').value,mode:$m('ef-mode').value,port:parseInt($m('ef-port').value,10)||443,sni:$m('ef-sni').value.trim(),attempts:parseInt($m('ef-attempts').value,10)||3,timeout:parseFloat($m('ef-timeout').value)||4,sample:parseInt($m('ef-sample').value,10)||10};
+  if(!body.targets.trim()){toast(lang==='fa'?'هدفی وارد نکرده‌اید':'Enter at least one target',true);return;}
+  try{
+    const r=await fetch('/api/endpoints/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.status===401){showLogin();return;}
+    const d=await r.json();
+    if(!r.ok||d.ok===false){toast(d.error||('Error '+r.status),true);return;}
+    efJob=d.job_id;efRows=[];efRender();$m('ef-start').disabled=true;$m('ef-cancel').style.display='';
+    efStopPoll();efTimer=setInterval(efPoll,1000);efPoll();
+  }catch(e){toast('Error',true);}
+}
+async function efPoll(){
+  if(!efJob)return;
+  try{
+    const r=await fetch('/api/endpoints/job/'+efJob);if(!r.ok){efStopPoll();return;}
+    const j=await r.json();efRows=j.results||[];efRender();
+    const pct=j.total?Math.round(j.done*100/j.total):0;$m('ef-bar').style.width=pct+'%';
+    efSet((j.status==='running'?'Testing… ':j.status==='done'?'Done · ':j.status==='cancelled'?'Cancelled · ':'Error · ')+j.done+'/'+j.total+' ('+pct+'%)'+(j.error?' · '+j.error:''));
+    if(j.status!=='running'){efStopPoll();$m('ef-start').disabled=false;$m('ef-cancel').style.display='none';}
+  }catch(e){}
+}
+function efStopPoll(){if(efTimer){clearInterval(efTimer);efTimer=null;}}
+async function efCancel(){if(!efJob)return;await fetch('/api/endpoints/job/'+efJob+'/cancel',{method:'POST'});efPoll();}
+function efRender(){
+  const tb=$m('ef-tbody'),em=$m('ef-empty');
+  if(!efRows.length){tb.innerHTML='';em.style.display='block';return;}
+  em.style.display='none';
+  tb.innerHTML=efRows.slice(0,200).map((r,i)=>{
+    const ok=r.ok;const cls=!ok?'var(--red)':r.avg<150?'var(--green)':r.avg<400?'var(--yellow)':'var(--red)';
+    let det=[];if(r.ip&&r.ip!==r.target)det.push(esc(r.ip));if(r.tcp_ms!=null)det.push('tcp '+r.tcp_ms);if(r.tls_ms!=null)det.push('tls '+r.tls_ms);if(r.ttfb_ms!=null)det.push('ttfb '+r.ttfb_ms);if(r.cf)det.push('CF '+esc(r.cf.colo)+' '+esc(r.cf.loc));if(r.error)det.push('<span style="color:var(--red)">'+esc(r.error)+'</span>');
+    return '<tr><td>'+(ok?(i+1):'—')+'</td><td style="direction:ltr;text-align:left;font-family:monospace;">'+esc(r.target)+'</td><td style="color:'+cls+';font-weight:700;">'+(ok?r.avg:'—')+'</td><td>'+(ok?r.min:'—')+'</td><td>'+(ok?r.max:'—')+'</td><td>'+(ok?r.jitter:'—')+'</td><td>'+(r.loss!=null?r.loss+'%':'—')+'</td><td style="font-size:.74rem;color:var(--text2);direction:ltr;text-align:left;">'+det.join(' · ')+'</td><td><button class="act-btn act-copy" title="Copy" onclick="navigator.clipboard.writeText(\''+esc(r.target)+'\');toast(\'Copied\')"><svg class="ic"><use href="#ic-copy"/></svg></button></td></tr>';
+  }).join('');
+}
+async function efAddBest(){
+  const best=efRows.filter(r=>r.ok&&r.loss<100).slice(0,5).map(r=>r.target);
+  if(!best.length){toast(lang==='fa'?'نتیجه‌ای برای افزودن نیست':'No results to add',true);return;}
+  try{const r=await fetch('/api/addresses/batch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({addresses:best})});const d=await r.json();toast('Added '+(d.added||0)+' to Clean IP');}catch(e){toast('Error',true);}
+}
 function setFilter(f,el){cf=f;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');filterLinks();}
 function filterLinks(){const q=($m('srch')?.value||'').toLowerCase();let r=allLinks;if(cf==='active')r=r.filter(l=>l.active);else if(cf==='off')r=r.filter(l=>!l.active);if(q)r=r.filter(l=>l.label.toLowerCase().includes(q)||l.uuid.toLowerCase().includes(q));renderLinks(r);}
 function renderLinks(links){
@@ -1162,7 +1277,7 @@ function renderLinks(links){
     return`<tr>
       <td><input type="checkbox" value="${l.uuid}" ${check} onchange="toggleSelectUid('${l.uuid}')"></td>
       <td style="font-weight:600">${labelDisplay}</td>
-      <td><span class="tag tag-vless">VLESS</span> ${l.encryption&&l.encryption!=='none'?`<span class="tag" style="opacity:.6;font-size:.65em;">${l.encryption}</span>`:''}</td>
+      <td><span class="tag tag-vless">VLESS</span> ${l.encryption&&l.encryption!=='none'?`<span class="tag" style="opacity:.6;font-size:.65em;">${l.encryption}</span>`:''} ${obTag(l.outbound)}</td>
       <td style="white-space:nowrap"><div class="pill"><span class="pill-used">${fmtB(u)}</span><div class="pill-bar"><div class="pill-fill" style="width:${pct}%;background:${col}"></div></div><span>${fmtLim(lim)}</span></div></td>
       <td>${cc}/${mc2||'∞'}</td>
       <td style="max-width:180px;">${fmtConns(l.uuid)}</td>
@@ -1173,6 +1288,7 @@ function renderLinks(links){
           <button class="toggle ${l.active?'on':''}" data-uid="${l.uuid}" onclick="togLink(this)"></button>
           <div style="display:flex; flex-wrap:wrap; gap:4px; justify-content:center;">
             ${l.label === 'This Server is Free' ? `
+              <button class="act-btn act-edit" title="${t('edit')}" onclick="showEditMo('${l.uuid}')"><svg class="ic"><use href="#ic-edit"/></svg></button>
               <button class="act-btn act-copy" title="${t('copy')}" onclick="cpLink('${esc(l.vless_link)}')"><svg class="ic"><use href="#ic-copy"/></svg></button>
               <button class="act-btn act-sub" title="${t('sub')}" onclick="cpSub('${l.uuid}')"><svg class="ic"><use href="#ic-link"/></svg></button>
               <button class="act-btn act-qr" title="${t('qr')}" onclick="showQR('${esc(l.vless_link)}')"><svg class="ic"><use href="#ic-qr"/></svg></button>
@@ -1230,10 +1346,13 @@ async function createLink(){
     custom_path:$m('ap').value.trim(),custom_sni:$m('asni').value.trim(),
     custom_host:$m('ahost').value.trim(),custom_fp:$m('afp').value.trim(),
     color:$m('alink-color')?.value||'#39ff14', flag: flagCode, fragment: fragment,
-    encryption: $m('aenc')?.value || 'none'
+    encryption: $m('aenc')?.value || 'none',
+    outbound: obRead('a')
   };
+  if(body.outbound===null)return;
   try{
-    await fetch('/api/links',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const r=await fetch('/api/links',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok){let d={};try{d=await r.json();}catch(e){}toast(d.detail||'Error',true);return;}
     toast('Created'); $m('mo-add').classList.remove('show'); loadLinks(); loadStats();
   }catch{toast('Error',true);}
 }
@@ -1244,6 +1363,7 @@ function showEditMo(uid){
   $m('ep').value=l.custom_path||''; $m('esni').value=l.custom_sni||''; $m('ehost').value=l.custom_host||''; $m('efp').value=l.custom_fp||'chrome';
   $m('efrag').value=l.fragment||'';
   if($m('eenc')) $m('eenc').value = l.encryption || 'none';
+  obWrite('e', l.outbound);
   $m('e-color').value=l.color||'#39ff14';
   const flag = l.flag || '';
   $m('flag-code-edit').value = flag;
@@ -1270,11 +1390,14 @@ async function saveEdit(){
     custom_path:$m('ep').value.trim(),custom_sni:$m('esni').value.trim(),
     custom_host:$m('ehost').value.trim(),custom_fp:$m('efp').value.trim(),
     color:$m('e-color').value, flag: flagCode, fragment: fragment,
-    encryption: $m('eenc')?.value || 'none'
+    encryption: $m('eenc')?.value || 'none',
+    outbound: obRead('e')
   };
+  if(body.outbound===null)return;
   if(days)body.days_valid=days;
   try{
-    await fetch('/api/links/'+uid,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const r=await fetch('/api/links/'+uid,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok){let d={};try{d=await r.json();}catch(e){}toast(d.detail||'Error',true);return;}
     toast('Updated'); $m('mo-edit').classList.remove('show'); loadLinks();
   }catch{toast('Error',true);}
 }

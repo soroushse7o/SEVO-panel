@@ -20,6 +20,9 @@ class Config:
     db_path: str = os.environ.get("DB_PATH", "/data/panel.db")
     database_url: str = os.environ.get("DATABASE_URL", "")
 
+    # Secret admin path: panel lives at /<SECRET_PATH>/panel (see app/secret_path.py)
+    secret_path: str = os.environ.get("SECRET_PATH", "")
+
     # Auth
     admin_username: str = os.environ.get("ADMIN_USERNAME", "admin")
     admin_password: str = os.environ.get("ADMIN_PASSWORD", "admin")

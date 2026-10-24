@@ -24,7 +24,7 @@ SE7O-SNA پایه است. هر اتصال کاربران پنل (WS) حالا ب
 `AETHER_BIN`، `AETHER_DIR`، `AETHER_VERSION`، و `WATCHDOG_*` مثل ASiRi.
 
 ## استفاده
-1. دیپلوی؛ در تب Aether اگر باینری نبود «Install» را بزنید (در Docker از قبل هست).
+1. دیپلوی؛ باینری Aether در ایمیج Docker از قبل موجود است (در غیر این صورت `AETHER_BIN` را تنظیم کنید؛ دکمه‌ی Install، ترنسپورت H3 و پراکسی HTTP از پنل حذف شده‌اند).
 2. Start. صبر کنید فاز `connected` شود.
 3. «Exit mode» را روی `auto` یا `aether` بگذارید و Save.
 

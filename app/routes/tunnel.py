@@ -10,7 +10,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app import state
 from app.vless import parse_vless_header
 from app.services.traffic import add_to_buffer
-from app.services.upstream import open_upstream
+from app.services.upstream import open_upstream, describe_route
 
 router = APIRouter()
 RELAY_BUF = 512 * 1024
@@ -150,6 +150,8 @@ async def websocket_tunnel(websocket: WebSocket, uuid: str):
                 await websocket.close(code=1008, reason="not found or disabled")
                 return
             max_conn = link.get("max_connections", 0)
+            # Per-inbound outbound routing (default = follow the global mode)
+            outbound = link.get("outbound") or "default"
 
         # Check expiry
         expires_at = link.get("expires_at")
@@ -187,6 +189,7 @@ async def websocket_tunnel(websocket: WebSocket, uuid: str):
             state.connections[conn_id] = {
                 "uuid": uuid, "ip": client_ip, "connected_at": now,
                 "bytes": 0, "last_active": __import__("time").time(),
+                "outbound": describe_route(outbound),
             }
             state.connection_sockets[conn_id] = websocket
             state.link_ip_map[uuid].add(client_ip)
@@ -199,7 +202,7 @@ async def websocket_tunnel(websocket: WebSocket, uuid: str):
             state.stats["upload_bytes"] += p_size
             await add_usage(uuid, p_size)
 
-        reader, writer = await open_upstream(address, port)
+        reader, writer = await open_upstream(address, port, route=outbound)
         try:
             sock = writer.get_extra_info("socket")
             if sock:

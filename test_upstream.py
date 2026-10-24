@@ -155,18 +155,150 @@ async def test_modes():
     await fs.close()
 
 
+class FakeSocksAuth(FakeSocks):
+    """SOCKS5 server that requires RFC1929 username/password."""
+
+    def __init__(self, user, pw):
+        super().__init__()
+        self.user, self.pw = user, pw
+        self.auth_seen = None
+
+    async def _handle(self, r, w):
+        try:
+            ver, n = await r.readexactly(2)
+            methods = await r.readexactly(n)
+            if 2 not in methods:
+                w.write(b"\x05\xff")
+                await w.drain()
+                return
+            w.write(b"\x05\x02")
+            await r.readexactly(1)
+            u = await r.readexactly((await r.readexactly(1))[0])
+            p = await r.readexactly((await r.readexactly(1))[0])
+            self.auth_seen = (u.decode(), p.decode())
+            ok = self.auth_seen == (self.user, self.pw)
+            w.write(b"\x01" + (b"\x00" if ok else b"\x01"))
+            await w.drain()
+            if not ok:
+                return
+            hdr = await r.readexactly(4)
+            ln = (await r.readexactly(1))[0] if hdr[3] == 3 else 0
+            host = (await r.readexactly(ln)).decode() if ln else ""
+            port = int.from_bytes(await r.readexactly(2), "big")
+            self.requests.append((hdr[3], host, port))
+            w.write(bytes([5, 0, 0, 1]) + b"\x00" * 6)
+            await w.drain()
+            while True:
+                data = await r.read(4096)
+                if not data:
+                    break
+                w.write(data)
+                await w.drain()
+        except Exception:
+            pass
+        finally:
+            w.close()
+
+
+def test_parse_route():
+    pr = upstream.parse_route
+    check("route '' / None / default -> default", pr("") == pr(None) == pr("default") == "default")
+    check("route keywords", pr("direct") == "direct" and pr("AETHER") == "aether" and pr("auto") == "auto")
+    check("route aliases warp/cloudflare -> aether", pr("warp") == "aether" and pr("Cloudflare") == "aether")
+    check("route socks5 normalised", pr("socks5://u:p@1.2.3.4:1080") == "socks5://u:p@1.2.3.4:1080"
+          and pr("socks5h://proxy.example.com:9050") == "socks5://proxy.example.com:9050")
+    for bad in ("socks5://nohost", "socks5://h:99999", "http://x:1", "banana", "socks5://" + "a" * 300 + ":1"):
+        try:
+            pr(bad)
+            check(f"route rejects {bad[:30]!r}", False)
+        except ValueError:
+            check(f"route rejects {bad[:30]!r}", True)
+    check("describe_route hides credentials", upstream.describe_route("socks5://u:secret@h:1") == "socks5://h:1"
+          and upstream.describe_route(None) == "default")
+
+
+async def test_per_inbound_routes():
+    async def dest(r, w):
+        w.write(b"direct-hello")
+        await w.drain()
+        w.close()
+
+    dsrv = await asyncio.start_server(dest, "127.0.0.1", 0)
+    dport = dsrv.sockets[0].getsockname()[1]
+    warp = await FakeSocks().start()          # stands in for Aether's local SOCKS5
+    ext = await FakeSocksAuth("bob", "pw").start()  # an external proxy with auth
+    ready = {"v": True}
+    upstream.configure(mode="direct", socks_port=warp.port, ready=lambda: ready["v"])
+
+    # global=direct: only inbounds that ask for WARP use it
+    r, w = await upstream.open_upstream("127.0.0.1", dport, route="default")
+    check("route default follows global (direct)", await r.readexactly(12) == b"direct-hello" and not warp.requests)
+    w.close()
+    r, w = await upstream.open_upstream("example.org", 443, route="aether")
+    w.write(b"x"); await w.drain()
+    check("inbound route=aether uses WARP while global=direct", warp.requests and warp.requests[-1][1] == "example.org")
+    w.close()
+
+    # global=aether: an inbound can still opt out with direct
+    upstream.configure(mode="aether")
+    n = len(warp.requests)
+    r, w = await upstream.open_upstream("127.0.0.1", dport, route="direct")
+    check("inbound route=direct overrides global=aether", await r.readexactly(12) == b"direct-hello"
+          and len(warp.requests) == n)
+    w.close()
+    r, w = await upstream.open_upstream("example.net", 80)
+    w.write(b"x"); await w.drain()
+    check("route=None follows global=aether", len(warp.requests) == n + 1)
+    w.close()
+
+    # route=aether is fail-closed when the tunnel is down, even if global=direct
+    upstream.configure(mode="direct")
+    ready["v"] = False
+    try:
+        await upstream.open_upstream("127.0.0.1", dport, route="aether")
+        check("route=aether fail-closed when tunnel down", False)
+    except upstream.UpstreamError:
+        check("route=aether fail-closed when tunnel down", True)
+    r, w = await upstream.open_upstream("127.0.0.1", dport, route="auto")
+    check("route=auto falls back to direct when tunnel down", await r.readexactly(12) == b"direct-hello")
+    w.close()
+    ready["v"] = True
+
+    # custom SOCKS5 proxy with RFC1929 auth
+    r, w = await upstream.open_upstream("example.com", 443, route=f"socks5://bob:pw@127.0.0.1:{ext.port}")
+    w.write(b"x"); await w.drain()
+    check("custom socks5 route with auth", ext.auth_seen == ("bob", "pw") and ext.requests
+          and ext.requests[-1][1] == "example.com")
+    w.close()
+    try:
+        await upstream.open_upstream("example.com", 443, route=f"socks5://bob:WRONG@127.0.0.1:{ext.port}")
+        check("custom socks5 wrong password rejected", False)
+    except upstream.UpstreamError:
+        check("custom socks5 wrong password rejected", True)
+
+    upstream.configure(mode="direct")
+    dsrv.close()
+    await warp.close()
+    await ext.close()
+
+
 # ---------------------------------------------------------------- aether pure logic
 def test_pure():
-    o = aether.parse_options({"protocol": "evil", "port": 80, "ip": "6", "http_proxy": True, "noize": "gfw"})
+    o = aether.parse_options({"protocol": "evil", "port": 80, "ip": "6", "http_proxy": True,
+                              "transport": "h3", "noize": "gfw"})
     check("parse_options rejects bad values", o["protocol"] == "masque" and o["port"] == 1819 and o["ip"] == "6"
-          and o["http_proxy"] is True and o["noize"] == "gfw")
+          and o["noize"] == "gfw")
+    check("H3 transport and HTTP proxy are gone", o["transport"] == "h2" and "http_proxy" not in o
+          and aether.TRANSPORTS == ("h2",))
     a = aether.build_args(aether.parse_options({}))
     check("build_args defaults", a == ["--protocol", "masque", "--scan", "turbo", "-4", "--h2",
                                         "--bind", "127.0.0.1:1819", "--quick-reconnect"], a)
     a = aether.build_args(aether.parse_options({"protocol": "wg", "port": 2000, "http_proxy": True,
                                                 "quick_reconnect": False, "ip": "dual"}))
-    check("build_args wg (no transport flag) + http proxy", "--h2" not in a and "--h3" not in a and "--dual" in a
-          and a[-3:] == ["--http-proxy", "127.0.0.1:2001", "--no-quick-reconnect"], a)
+    check("build_args wg (no transport flag, never an http proxy)", "--h2" not in a and "--h3" not in a
+          and "--dual" in a and "--http-proxy" not in a and a[-1] == "--no-quick-reconnect", a)
+    a = aether.build_args(aether.parse_options({"transport": "h3", "http_proxy": True}))
+    check("build_args never emits --h3 / --http-proxy", "--h3" not in a and "--http-proxy" not in a and "--h2" in a, a)
     check("backoff", [aether.backoff_sec(i) for i in (0, 1, 2, 10)] == [2, 4, 8, 300])
 
     aether.S.phase = "stopped"
@@ -260,6 +392,8 @@ async def test_lifecycle():
 async def main():
     await test_socks()
     await test_modes()
+    test_parse_route()
+    await test_per_inbound_routes()
     test_pure()
     await test_lifecycle()
 

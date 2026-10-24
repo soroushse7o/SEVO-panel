@@ -113,6 +113,7 @@ with comments is also in [`SE7O-SNA-config.toml`](SE7O-SNA-config.toml).
 |----------|----------|---------|-------------|
 | `ADMIN_USERNAME` | Recommended | `se7oadmin` | Panel login username. Defaults to `admin`. |
 | `ADMIN_PASSWORD` | Yes | `StrongPass!123` | Panel login password. Defaults to `admin` if unset, so always set your own. |
+| `SECRET_PATH` | **Yes** | `k7Qp2xVn9aTm` | Secret URL prefix of the admin panel: it is served only at `https://<domain>/<SECRET_PATH>/panel` (3–64 chars: letters, digits, `-`, `_`). `/panel`, `/login`, `/dashboard` and the admin API (`/api/*`, `/stats`, `/connections`) return **404** without it. If unset, a random one is generated once, saved in the database and printed in the startup log. |
 | `SECRET_KEY` | Yes | *(long random string)* | Signs JWT session cookies. If unset, a new key is generated on first start and stored in the database. |
 | `DOMAIN` | Recommended | `se7o-sna.up.railway.app` | Public domain, used to build subscription links correctly. Detected automatically from Railway's `RAILWAY_PUBLIC_DOMAIN` when unset. |
 | `DB_PATH` | Recommended | `/data/panel.db` | SQLite file location. Mount a Railway volume at `/data` to keep data across redeploys. |
@@ -196,12 +197,30 @@ release (`v1.5.0`, amd64 and arm64) at `/usr/local/bin/aether`. If the binary is
 
 3. Optionally enable **auto start** so the tunnel comes up after every restart.
 
-The tab also lets you pick the protocol (`masque`, `wg`, `gool`, `mim`), transport (`h2`, `h3`),
+The tab also lets you pick the protocol (`masque`, `wg`, `gool`, `mim`),
 scan mode (`turbo`, `balanced`, `thorough`, `verified`, `ironclad`), IP family (`4`, `6`, `dual`),
-noize profile, local SOCKS port, and an optional local HTTP proxy. A watchdog probes the tunnel
+noize profile and local SOCKS port. (The HTTP/3 transport, the HTTP proxy on port+1 and the in-panel
+Install button were removed; the tunnel always uses HTTP/2 and the binary ships in the Docker image.) A watchdog probes the tunnel
 through its SOCKS5 port, restarts it with exponential backoff, and falls back to the last known-good
 preset after repeated failed starts. Enable the **Tunnel down** event in the Telegram tab to be
 notified.
+
+#### Per-inbound outbound routing
+
+Every inbound has its own **Outbound (traffic exit)** setting (Create / Edit inbound), so one inbound
+can leave through Cloudflare WARP while another leaves directly. It overrides the global exit mode above
+for that inbound only and applies to new connections immediately:
+
+| Outbound | Behaviour |
+|----------|-----------|
+| `default` | Follow the global exit mode (default). |
+| `direct` | Always connect from this server's IP. |
+| `aether` (WARP) | Always via Aether / Cloudflare WARP. Fail-closed: refused while the tunnel is down. |
+| `auto` | WARP while connected, otherwise direct. |
+| `socks5://[user:pass@]host:port` | Any external SOCKS5 proxy (username/password supported). |
+
+The value is also available as the `outbound` field of `POST /api/links` and `PATCH /api/links/{uid}`,
+and is included in export/import and backup/restore.
 
 Aether carries TCP only; UDP does not go through it. While Aether is scanning or connecting for the
 first time in `aether` mode, user connections are refused.
@@ -212,7 +231,7 @@ first time in `aether` mode, user connections are refused.
 | `AETHER_AUTO_START` | *(panel setting)* | `1` to start the tunnel automatically after every restart. |
 | `AETHER_BIN` | `/usr/local/bin/aether` | Path to the Aether binary. |
 | `AETHER_DIR` | `<DB directory>/aether` | Where Aether keeps its working files and downloaded binary. |
-| `AETHER_VERSION` | `v1.5.0` | Release used by the in-panel **Install** button. |
+| `AETHER_VERSION` | `v1.5.0` | Pinned release used by the Docker build (and the `/api/aether/install` API). |
 | `WATCHDOG_TICK_SEC` | `5` | How often the watchdog loop wakes up. |
 | `WATCHDOG_INTERVAL_SEC` | `30` | Seconds between health probes. |
 | `WATCHDOG_MAX_FAILURES` | `3` | Failed probes in a row before a restart. |
@@ -228,10 +247,27 @@ More background on how Aether was merged into this panel is in
 
 ### 7. Sign in
 
-Open your deployment URL at `/panel` and log in with `ADMIN_USERNAME` and `ADMIN_PASSWORD`.
+Open `https://<your-domain>/<SECRET_PATH>/panel` (opening just `/<SECRET_PATH>` redirects there) and log in with `ADMIN_USERNAME` and `ADMIN_PASSWORD`.
 Changing the password from **Settings** afterwards takes effect immediately and persists in the
 database — just don't leave a stale `ADMIN_PASSWORD` variable set to the old value, since that
 will overwrite your in-panel change on the next redeploy.
+
+#### Best Endpoint Finder
+
+The **Best Endpoint** tab measures latency from the panel server to any list of IPs, hostnames or
+CIDR ranges (a random sample is taken from each range) and ranks them by average latency, jitter and
+packet loss. Test types: TCP connect, TLS handshake (with a chosen SNI) and an HTTP trace that also
+shows the Cloudflare colo/country. One click loads the Cloudflare ranges or your Clean IP list, and
+**Add best 5 to Clean IP** copies the winners into the Clean IP tab. Private, loopback and reserved
+addresses are refused. Only one scan runs at a time (max 300 targets, 50 in parallel).
+
+### Health check
+
+`GET /health` (alias `/api/health`, `HEAD` supported) is public and returns JSON — status
+(`ok` / `degraded` / `error`), uptime, database check, active connections and inbound counts,
+current outbound / WARP state, and system metrics (CPU, load, memory, disk, process RSS). It answers
+HTTP 503 when the database is unreachable, so it works directly as a load-balancer / uptime-monitor
+check (the Dockerfile already uses it for `HEALTHCHECK`).
 
 ---
 
@@ -265,7 +301,8 @@ will overwrite your in-panel change on the next redeploy.
 | `test_mtproxy.py` | Unit tests for secrets, endpoint resolution, and the MTProxy supervisor. |
 | `test_upstream.py` | Unit tests for the outbound connector, Aether log parsing, and the watchdog. |
 | `test_linkgen.py`, `test_audit_transports.py` | Check that generated links match the endpoints the server serves. |
-| `test_endpoints_defined.py` | Checks that every transport and `/api/aether/*` route is registered. |
+| `test_endpoints_defined.py` | Checks that every transport, `/api/aether/*`, health and endpoint-finder route is registered. |
+| `test_secret_and_finder.py` | Offline tests for the `SECRET_PATH` middleware and the Best Endpoint Finder. |
 
 ## Local development
 
@@ -274,7 +311,7 @@ pip install -r requirements.txt
 DB_PATH=./panel.db ADMIN_USERNAME=admin ADMIN_PASSWORD=Test1234 python main.py
 ```
 
-The panel is then served at `http://127.0.0.1:8080/panel`.
+The panel is then served at `http://127.0.0.1:8080/<SECRET_PATH>/panel` (set `SECRET_PATH=mysecret`, or read the generated value from the startup log).
 
 To run the end-to-end suite, start the server on port 8899 with username `se7oadmin` and password
 `Test1234`, then run:

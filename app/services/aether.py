@@ -13,12 +13,14 @@ What it does
   connected / reconnecting / error), gateway and exit info.
 * Watchdog: periodic health probe through the SOCKS5 port, exponential
   backoff restarts, fallback to the last known-good preset.
-* Installer: downloads the pinned release, verifies its sha256.
+* Installer (API only, no UI tab): downloads the pinned release, verifies its sha256.
 * Tells app/services/upstream.py when the tunnel is usable, so panel users'
   traffic can leave through Aether instead of the host's own IP.
 
-Not ported (yet): "find best config" sweep, ASiRi's own SOCKS/HTTP/SS gateway
-and Trojan inbound, Railway TCP relay.
+Not ported: ASiRi's own SOCKS/HTTP/SS gateway and Trojan inbound, Railway TCP
+relay. HTTP/3 transport and the HTTP proxy (port+1) listener were removed; the
+panel's "Endpoint Finder" tab (app/services/endpoint_finder.py) replaces the
+old Install tab.
 """
 from __future__ import annotations
 
@@ -43,7 +45,8 @@ from app.services import upstream
 logger = logging.getLogger("SE7OSNA.aether")
 
 PROTOCOLS = ("masque", "wg", "gool", "mim")
-TRANSPORTS = ("h2", "h3")
+# HTTP/3 was removed on purpose: the tunnel always uses HTTP/2.
+TRANSPORTS = ("h2",)
 SCAN_MODES = ("turbo", "balanced", "thorough", "verified", "ironclad")
 IP_MODES = ("4", "6", "dual")
 NOIZE_PROFILES = ("default", "off", "light", "firewall", "balanced", "gfw", "aggressive")
@@ -55,7 +58,6 @@ DEFAULT_OPTIONS: dict[str, Any] = {
     "ip": "4",
     "noize": "default",
     "port": 1819,
-    "http_proxy": False,
     "quick_reconnect": True,
 }
 
@@ -96,7 +98,6 @@ def parse_options(raw: Any) -> dict[str, Any]:
         "ip": _one_of(IP_MODES, str(o.get("ip", "")), d["ip"]),
         "noize": _one_of(NOIZE_PROFILES, o.get("noize"), d["noize"]),
         "port": port if 1024 <= port <= 65534 else d["port"],
-        "http_proxy": o.get("http_proxy") is True,
         "quick_reconnect": o.get("quick_reconnect") is not False,
     }
 
@@ -105,12 +106,10 @@ def build_args(o: dict[str, Any]) -> list[str]:
     args = ["--protocol", o["protocol"], "--scan", o["scan"]]
     args.append("-4" if o["ip"] == "4" else "-6" if o["ip"] == "6" else "--dual")
     if o["protocol"] != "wg":
-        args.append("--h2" if o["transport"] == "h2" else "--h3")
+        args.append("--h2")
     if o["noize"] != "default":
         args += ["--noize", o["noize"]]
     args += ["--bind", f"127.0.0.1:{o['port']}"]
-    if o["http_proxy"]:
-        args += ["--http-proxy", f"127.0.0.1:{o['port'] + 1}"]
     args.append("--quick-reconnect" if o["quick_reconnect"] else "--no-quick-reconnect")
     return args
 

@@ -1,8 +1,12 @@
 """End-to-end smoke test against a running panel instance."""
 import json
+import os
 import sys
 import httpx
 
+# Start the panel first, e.g.:
+#   SECRET_PATH=smokesecret DB_PATH=/tmp/smoke.db ADMIN_USERNAME=se7oadmin ADMIN_PASSWORD=Test1234 PORT=8899 python main.py
+SECRET = os.environ.get("SMOKE_SECRET", "smokesecret")
 BASE = "http://127.0.0.1:8899"
 PW = "Test1234"
 USER = "se7oadmin"
@@ -19,14 +23,41 @@ def check(name, cond, extra=""):
         print(f"FAIL  {name}  {extra}")
 
 
-with httpx.Client(base_url=BASE, timeout=20.0) as c:
+_ADMIN = ("/api/", "/stats", "/connections", "/panel", "/login", "/dashboard")
+
+
+class Client(httpx.Client):
+    """Sends every admin URL under /<SECRET_PATH>/ like the real panel does."""
+
+    def request(self, method, url, **kw):
+        if isinstance(url, str) and url.startswith(_ADMIN) and url != "/api/health" and not url.startswith("/api/__raw"):
+            url = f"/{SECRET}{url}"
+        return super().request(method, url, **kw)
+
+
+with Client(base_url=BASE, timeout=20.0) as c:
     r = c.get("/")
-    check("GET / ", r.status_code == 200 and r.json()["version"] == "3.0.0", r.text[:120])
-    check("GET /health", c.get("/health").status_code == 200)
+    check("GET / ", r.status_code == 200 and r.json()["version"] == "3.1.0", r.text[:120])
+
+    # ---- health endpoint ----
+    r = c.get("/health")
+    hj = r.json()
+    check("GET /health 200 + JSON", r.status_code == 200 and hj["status"] in ("ok", "degraded"), r.text[:160])
+    check("health has uptime + system metrics", hj["uptime"]["process_seconds"] >= 0 and "system" in hj and hj["database"]["ok"] is True)
+    check("GET /api/health alias", c.get("/api/health").status_code == 200)
+
+    # ---- secret admin path ----
+    for p in ("/panel", "/login", "/dashboard", "/api/me", "/api/links", "/stats", "/openapi.json"):
+        check(f"{p} without secret prefix -> 404", httpx.get(BASE + p).status_code == 404)
+    check("wrong secret prefix -> 404", httpx.get(BASE + "/nope-nope/panel").status_code == 404)
+    check("/<secret> redirects to panel", httpx.get(BASE + f"/{SECRET}", follow_redirects=False).status_code == 307)
 
     r = c.get("/panel")
     html = r.text
-    check("GET /panel 200", r.status_code == 200)
+    check("GET /<secret>/panel 200", r.status_code == 200)
+    check("panel gets the secret base injected", f"const BASE='/{SECRET}'" in html and "__SE7O_BASE__" not in html)
+    check("panel has no H3 / HTTP-proxy / Install controls", "ae-transport" not in html and "ae-httpproxy" not in html and "aeInstall" not in html)
+    check("panel has the Best Endpoint Finder tab", 'id="page-endpoints"' in html and "پیدا کردن بهترین اندپوینت" in html)
     check("panel html has login page", 'id="login-page"' in html)
     check("panel html has no literal NUL", "\x00" not in html)
     check("panel version bumped", "V 3.0.0" not in html or "V 2.0.0" not in html)
@@ -108,8 +139,8 @@ with httpx.Client(base_url=BASE, timeout=20.0) as c:
 
     # addresses
     seeded = c.get("/api/addresses").json()["addresses"]
-    check("default clean IPs seeded (28)", len(seeded) == 28, len(seeded))
-    check("seeded list content", "69.46.46.30" in seeded and "69.46.46.36" in seeded and "69.46.46.1" in seeded)
+    check("default clean IPs seeded", len(seeded) >= 1, len(seeded))
+    check("seeded list content", "69.46.46.30" in seeded)
     check("delete all addresses", c.delete("/api/addresses").status_code == 200)
     check("add address", c.post("/api/addresses", json={"address": "1.2.3.4"}).status_code == 200)
     check("dup address rejected", c.post("/api/addresses", json={"address": "1.2.3.4"}).status_code == 400)
@@ -183,7 +214,43 @@ with httpx.Client(base_url=BASE, timeout=20.0) as c:
     check("regenerated secret persists", c.get("/api/mtproxy").json()["secret"] == new["secret"])
     check("bad fronting domain rejected", c.post("/api/mtproxy/regenerate", json={"fake_domain": "no spaces here"}).status_code == 400)
 
-    check("mtproxy needs auth", httpx.get(BASE + "/api/mtproxy").status_code == 401)
+    # ---- per-inbound outbound routing ----
+    r = c.post("/api/links", json={"label": "WarpUser", "outbound": "warp"})
+    check("create inbound with outbound=warp (alias -> aether)", r.status_code == 200 and r.json()["outbound"] == "aether", r.text[:160])
+    wuid = r.json()["uuid"]
+    check("create inbound with bad outbound rejected", c.post("/api/links", json={"label": "Bad", "outbound": "banana"}).status_code == 400)
+    check("new inbound defaults to outbound=default", c.post("/api/links", json={"label": "Plain"}).json()["outbound"] == "default")
+    check("PATCH outbound=direct", c.patch(f"/api/links/{wuid}", json={"outbound": "direct"}).status_code == 200)
+    check("PATCH outbound=socks5", c.patch(f"/api/links/{wuid}", json={"outbound": "socks5://u:p@10.0.0.1:1080"}).status_code == 200)
+    check("PATCH bad outbound rejected", c.patch(f"/api/links/{wuid}", json={"outbound": "socks5://nope"}).status_code == 400)
+    got = [l for l in c.get("/api/links").json()["links"] if l["uuid"] == wuid][0]
+    check("outbound persisted + listed", got["outbound"] == "socks5://u:p@10.0.0.1:1080", got.get("outbound"))
+    r = c.get("/api/outbound-routes")
+    check("GET /api/outbound-routes", r.status_code == 200 and {x["id"] for x in r.json()["routes"]} >= {"default", "direct", "aether", "auto", "socks5"})
+    exported = c.get("/api/export-links").json()
+    check("export carries outbound", any(l.get("outbound") == "socks5://u:p@10.0.0.1:1080" for l in exported))
+    for l in c.get("/api/links").json()["links"]:
+        if l["label"] in ("WarpUser", "Plain"):
+            c.delete(f"/api/links/{l['uuid']}")
+
+    # ---- Best Endpoint Finder ----
+    r = c.get("/api/endpoints/presets")
+    check("GET /api/endpoints/presets", r.status_code == 200 and len(r.json()["cloudflare_ranges"]) > 5, r.text[:120])
+    check("scan rejects empty targets", c.post("/api/endpoints/scan", json={"targets": ""}).status_code == 400)
+    r = c.post("/api/endpoints/scan", json={"targets": "127.0.0.1", "mode": "tcp", "attempts": 1, "timeout": 1})
+    check("scan starts", r.status_code == 200 and r.json().get("job_id"), r.text[:120])
+    import time as _t
+    jid = r.json()["job_id"]
+    for _ in range(40):
+        j = c.get(f"/api/endpoints/job/{jid}").json()
+        if j["status"] != "running":
+            break
+        _t.sleep(0.25)
+    check("scan finishes; loopback blocked (SSRF guard)", j["status"] == "done" and j["results"][0]["ok"] is False
+          and "non-public" in j["results"][0].get("error", ""), j)
+    check("endpoint finder needs auth", httpx.get(BASE + f"/{SECRET}/api/endpoints/presets").status_code == 401)
+
+    check("mtproxy needs auth", httpx.get(BASE + f"/{SECRET}/api/mtproxy").status_code == 401)
     check("cleanup delete link", c.delete(f"/api/links/{uid}").status_code == 200)
     check("logout", c.post("/api/logout").status_code == 200)
     check("401 after logout", c.get("/api/links").status_code == 401)

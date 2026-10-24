@@ -84,6 +84,10 @@ class AppState:
         self.keep_alive_interval: int = 300
         self.logging_enabled: bool = True
 
+        # Secret admin URL prefix (resolved at startup, see app/secret_path.py)
+        self.secret_path: str = ""
+        self.process_start: float = time.time()
+
         # JWT secret (loaded from DB)
         self.secret_key: str = ""
         self.admin_username: str = ""

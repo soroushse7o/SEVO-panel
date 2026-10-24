@@ -1,5 +1,5 @@
 """
-SE7O-SNA Panel v3.0 — Modular Architecture
+SE7O-SNA Panel v3.1 — Modular Architecture
 ==========================================
 Single command to run: python main.py
 """
@@ -154,6 +154,10 @@ async def lifespan(app: FastAPI):
             (state.admin_password_hash,),
         )
 
+    # Secret admin path (SECRET_PATH env > persisted > generated).
+    from app import secret_path as _secret_path
+    await _secret_path.resolve_at_startup(logger)
+
     asyncio.create_task(simple_loop())
     asyncio.create_task(advanced_loop())
     asyncio.create_task(auto_disable_expired())
@@ -165,7 +169,7 @@ async def lifespan(app: FastAPI):
     await mtproxy_service.start()
     await aether_service.init()
 
-    logger.info("SE7O-SNA Panel v3.0 started")
+    logger.info("SE7O-SNA Panel v3.1 started")
     yield
     await aether_service.shutdown()
     await mtproxy_service.stop()
@@ -173,7 +177,7 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="SE7O-SNA Panel v2", lifespan=lifespan, docs_url=None, redoc_url=None)
+    app = FastAPI(title="SE7O-SNA Panel v3", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
     # NOTE: allow_origins=["*"] together with allow_credentials=True is
@@ -206,6 +210,8 @@ def create_app() -> FastAPI:
     from app.routes.backup import router as backup_router
     from app.routes.mtproxy import router as mtproxy_router
     from app.routes.panel import router as panel_router
+    from app.routes.health import router as health_router
+    from app.routes.endpoints import router as endpoints_router
     from app.routes.transports import router as transports_router
     from app.routes.aether import router as aether_router
 
@@ -221,6 +227,13 @@ def create_app() -> FastAPI:
     app.include_router(panel_router)
     app.include_router(transports_router)
     app.include_router(aether_router)
+    app.include_router(health_router)
+    app.include_router(endpoints_router)
+
+    # Outermost middleware (added last): hides the admin panel/API behind
+    # /<SECRET_PATH>/ and 404s them everywhere else. See app/secret_path.py.
+    from app.secret_path import SecretPathMiddleware
+    app.add_middleware(SecretPathMiddleware)
 
     return app
 

@@ -44,6 +44,16 @@ EXPECTED = {
     "/api/aether/restart": {"POST"},
     "/api/aether/install": {"POST"},
     "/api/aether/settings": {"POST"},
+    # health monitoring (public)
+    "/health": {"GET", "HEAD"},
+    "/api/health": {"GET", "HEAD"},
+    # Best Endpoint Finder
+    "/api/endpoints/presets": {"GET"},
+    "/api/endpoints/scan": {"POST"},
+    "/api/endpoints/job/{job_id}": {"GET"},
+    "/api/endpoints/job/{job_id}/cancel": {"POST"},
+    # per-inbound outbound routing
+    "/api/outbound-routes": {"GET"},
 }
 
 print("=== Registered transport routes ===")

@@ -9,6 +9,11 @@ from app import state
 from app.database import fetchone
 
 
+
+def _panel_url() -> str:
+    from app.secret_path import panel_url
+    return panel_url(settings.domain)
+
 async def _get_tg_config():
     token_row = await fetchone(
         "SELECT value FROM settings WHERE key='tg_bot_token'",
@@ -124,7 +129,7 @@ async def notify_login(ip, ua):
 
     msg = templates.get("login", default)
     msg = msg.replace("{ip}", ip).replace("{ua}", ua).replace("{time}", now_str)
-    msg += '\n\n<a href="https://' + settings.domain + '/panel">Open SE7O-SNA Panel</a>'
+    msg += '\n\n<a href="' + _panel_url() + '">Open SE7O-SNA Panel</a>'
 
     ok, err = await _send(token, chat_id, msg, parse_mode="HTML")
     if not ok:
@@ -152,7 +157,7 @@ async def notify_event(event, label, uid):
 
     msg = templates.get(event, default)
     msg = msg.replace("{label}", label).replace("{uid}", uid)
-    msg += '\n\n<a href="https://' + settings.domain + '/panel">Open SE7O-SNA Panel</a>'
+    msg += '\n\n<a href="' + _panel_url() + '">Open SE7O-SNA Panel</a>'
 
     ok, err = await _send(token, chat_id, msg, parse_mode="HTML")
     if not ok:

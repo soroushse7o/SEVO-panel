@@ -37,6 +37,9 @@ async def init_db():
             await conn.execute(SCHEMA_POSTGRES)
             await conn.execute("ALTER TABLE links ADD COLUMN IF NOT EXISTS transport TEXT DEFAULT 'ws'")
             await conn.execute("ALTER TABLE links ADD COLUMN IF NOT EXISTS encryption TEXT DEFAULT 'none'")
+            # Per-inbound outbound routing (default = follow the global mode).
+            await conn.execute("ALTER TABLE links ADD COLUMN IF NOT EXISTS outbound TEXT DEFAULT 'default'")
+            await conn.execute("UPDATE links SET outbound = 'default' WHERE outbound IS NULL OR outbound = ''")
             # WebSocket is the only supported transport: migrate any old
             # xhttp / http / tcp links onto ws.
             await conn.execute("UPDATE links SET transport = 'ws' WHERE transport IS NULL OR transport <> 'ws'")
@@ -65,6 +68,12 @@ async def init_db():
             await _db_conn.execute("ALTER TABLE links ADD COLUMN encryption TEXT DEFAULT 'none'")
         except Exception:
             pass  # column already exists
+        try:
+            # Per-inbound outbound routing (default = follow the global mode).
+            await _db_conn.execute("ALTER TABLE links ADD COLUMN outbound TEXT DEFAULT 'default'")
+        except Exception:
+            pass  # column already exists
+        await _db_conn.execute("UPDATE links SET outbound = 'default' WHERE outbound IS NULL OR outbound = ''")
         # WebSocket is the only supported transport: migrate any old
         # xhttp / http / tcp links onto ws.
         await _db_conn.execute("UPDATE links SET transport = 'ws' WHERE transport IS NULL OR transport <> 'ws'")
@@ -119,7 +128,7 @@ LINKS_COLS = (
     "custom_path TEXT DEFAULT '', custom_sni TEXT DEFAULT '', "
     "custom_host TEXT DEFAULT '', custom_fp TEXT DEFAULT 'chrome', "
     "color TEXT DEFAULT '#39ff14', flag TEXT DEFAULT '', fragment TEXT DEFAULT '', "
-    "transport TEXT DEFAULT 'ws'"
+    "transport TEXT DEFAULT 'ws', outbound TEXT DEFAULT 'default'"
 )
 
 SCHEMA_SQLITE = (

@@ -12,7 +12,7 @@ import os
 import asyncio
 
 router = APIRouter()
-PANEL_VERSION = "3.0.4"
+PANEL_VERSION = "3.1.0"
 
 
 @router.post("/api/panel/restart")
@@ -88,9 +88,19 @@ async def favicon_png():
 @router.get("/login")
 @router.get("/dashboard")
 async def panel_page(request: Request):
-    """Serve the single-page panel HTML."""
+    """
+    Serve the single-page panel HTML.
+
+    Only reachable as /<SECRET_PATH>/panel: SecretPathMiddleware strips the
+    prefix and flags the request. The check below is defence in depth in case
+    the middleware is ever removed or bypassed.
+    """
+    if not request.scope.get("se7o_admin"):
+        raise HTTPException(status_code=404, detail="Not Found")
+    from app.secret_path import base_prefix
     from app.templates.panel_html import PANEL_HTML
-    return HTMLResponse(content=PANEL_HTML)
+    html = PANEL_HTML.replace("__SE7O_BASE__", base_prefix())
+    return HTMLResponse(content=html, headers={"Cache-Control": "no-store"})
 
 
 @router.get("/api/login-logs")

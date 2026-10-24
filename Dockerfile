@@ -51,4 +51,8 @@ RUN mkdir -p /data && /usr/local/bin/mtg --version && /usr/local/bin/aether --ve
 # exposes separately via TCP Proxy. Aether's SOCKS5 listens on 127.0.0.1 only.
 EXPOSE 8080 443
 
+# /health is public and returns HTTP 503 when the database is unreachable.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD python -c "import os,sys,urllib.request as u; sys.exit(0 if u.urlopen('http://127.0.0.1:%s/health' % os.environ.get('PORT','8080'), timeout=4).status == 200 else 1)"
+
 CMD ["python", "main.py"]

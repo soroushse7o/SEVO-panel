@@ -66,6 +66,29 @@ async def list_users(_=Depends(require_auth)):
     return {"users": list(users.values())}
 
 
+@router.get("/api/outbound-routes")
+async def list_outbound_routes(_=Depends(require_auth)):
+    """Options for the per-inbound 'Outbound' selector + live availability."""
+    from app.services import upstream
+    warp_up = False
+    try:
+        from app.services import aether
+        warp_up = aether.is_connected()
+    except Exception:
+        pass
+    return {
+        "global_mode": upstream.current_mode(),
+        "warp_connected": warp_up,
+        "routes": [
+            {"id": "default", "label": "Default (follow global mode)"},
+            {"id": "direct", "label": "Direct (this server's IP)"},
+            {"id": "aether", "label": "Cloudflare WARP (Aether, fail-closed)"},
+            {"id": "auto", "label": "WARP if connected, else direct"},
+            {"id": "socks5", "label": "Custom SOCKS5 proxy (socks5://host:port)"},
+        ],
+    }
+
+
 @router.get("/api/outbound-config")
 async def get_outbound_config(_=Depends(require_auth)):
     """Return the editable outbound/transport configuration."""

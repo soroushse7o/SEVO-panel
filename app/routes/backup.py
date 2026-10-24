@@ -10,6 +10,16 @@ from datetime import datetime, timezone
 import uuid as uuid_lib
 
 router = APIRouter()
+
+
+def _safe_route(raw):
+    from app.services.upstream import parse_route
+    try:
+        return parse_route(raw)
+    except ValueError:
+        return "default"
+
+
 MAX_RESTORE_SIZE = 5 * 1024 * 1024
 
 
@@ -81,18 +91,19 @@ async def restore_backup(request: Request, _=Depends(require_auth)):
                 "flag": link.get("flag", ""),
                 "fragment": link.get("fragment", ""),
                 "transport": "ws",
+                "outbound": _safe_route(link.get("outbound")),
             }
             async with state.links_lock:
                 state.links[uid] = link_data
             await db_exec(
-                "INSERT INTO links (uid, label, limit_bytes, used_bytes, max_connections, created_at, active, expires_at, custom_path, custom_sni, custom_host, custom_fp, color, flag, fragment, transport) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                "INSERT INTO links (uid, label, limit_bytes, used_bytes, max_connections, created_at, active, expires_at, custom_path, custom_sni, custom_host, custom_fp, color, flag, fragment, transport) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)",
+                "INSERT INTO links (uid, label, limit_bytes, used_bytes, max_connections, created_at, active, expires_at, custom_path, custom_sni, custom_host, custom_fp, color, flag, fragment, transport, outbound) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO links (uid, label, limit_bytes, used_bytes, max_connections, created_at, active, expires_at, custom_path, custom_sni, custom_host, custom_fp, color, flag, fragment, transport, outbound) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)",
                 (uid, link_data["label"], link_data["limit_bytes"], link_data["used_bytes"],
                  link_data["max_connections"], link_data["created_at"],
                  bool(link_data["active"]) if DB_BACKEND == "postgresql" else link_data["active"],
                  link_data["expires_at"], link_data["custom_path"], link_data["custom_sni"],
                  link_data["custom_host"], link_data["custom_fp"], link_data["color"],
-                 link_data["flag"], link_data["fragment"], link_data["transport"]),
+                 link_data["flag"], link_data["fragment"], link_data["transport"], link_data["outbound"]),
             )
 
     return {"ok": True}

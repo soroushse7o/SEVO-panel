@@ -6,6 +6,11 @@ start_command = "python main.py"
 [env]
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "your-strong-password"
+# Secret admin URL prefix. The panel is ONLY reachable at
+#   https://<domain>/<SECRET_PATH>/panel
+# (3-64 chars: letters, digits, - _). /panel, /login and the admin API return
+# 404 without it. If unset, a random one is generated once and printed in the log.
+SECRET_PATH = "change-me-to-a-long-random-string"
 SECRET_KEY = "generate-a-random-string"
 DB_PATH = "/data/panel.db"
 DOMAIN = "your-app-domain.example.com"
@@ -35,7 +40,7 @@ MTPROXY_FAKE_DOMAIN = "www.cloudflare.com"
 # Start the tunnel automatically after every restart (needs the binary).
 # AETHER_AUTO_START = "1"
 # Binary location (the Dockerfile installs it at /usr/local/bin/aether) and
-# the pinned release used by the in-panel "Install" button.
+# the pinned release used by the Docker build.
 # AETHER_BIN = "/usr/local/bin/aether"
 # AETHER_VERSION = "v1.5.0"
 # Watchdog tuning (seconds unless noted); defaults shown.
@@ -44,3 +49,7 @@ MTPROXY_FAKE_DOMAIN = "www.cloudflare.com"
 # WATCHDOG_STUCK_SEC = "300"
 # WATCHDOG_BACKOFF_BASE_SEC = "2"
 # WATCHDOG_BACKOFF_MAX_SEC = "300"
+
+# Health check: GET /health (alias /api/health) returns JSON status, uptime and
+# system metrics; HTTP 503 when the database is unreachable.
+# healthcheck_path = "/health"
