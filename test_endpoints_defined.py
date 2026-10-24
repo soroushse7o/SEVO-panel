@@ -44,10 +44,16 @@ EXPECTED = {
     "/ws/{uuid}": {"WS"},
     "/xhttp1/{uuid}": {"POST"},
     "/http/{uuid}": {"POST"},
+    "/api/aether/status": {"GET"},
+    "/api/aether/start": {"POST"},
+    "/api/aether/stop": {"POST"},
+    "/api/aether/restart": {"POST"},
+    "/api/aether/install": {"POST"},
+    "/api/aether/settings": {"POST"},
 }
 
 print("=== Registered transport routes ===")
-for p in ("/ws/{uuid}", "/xhttp1/{uuid}", "/http/{uuid}"):
+for p in EXPECTED:
     methods = routes.get(p, set())
     print(f"  {p:20s} -> {sorted(methods)}")
 

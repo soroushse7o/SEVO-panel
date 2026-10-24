@@ -29,6 +29,7 @@ from app.services.telegram import report_loop
 from app.services.links import auto_disable_expired
 from app.services import mtproxy as mtproxy_service
 from app.services import raw_tcp as raw_tcp_service
+from app.services import aether as aether_service
 
 LOGGING_CONFIG = {
     "version": 1,
@@ -164,9 +165,11 @@ async def lifespan(app: FastAPI):
 
     await mtproxy_service.start()
     await raw_tcp_service.start()
+    await aether_service.init()
 
     logger.info("SE7O-SNA Panel v3.0 started")
     yield
+    await aether_service.shutdown()
     await mtproxy_service.stop()
     await raw_tcp_service.stop()
     await close_db()
@@ -207,6 +210,7 @@ def create_app() -> FastAPI:
     from app.routes.mtproxy import router as mtproxy_router
     from app.routes.panel import router as panel_router
     from app.routes.transports import router as transports_router
+    from app.routes.aether import router as aether_router
 
     app.include_router(auth_router)
     app.include_router(links_router)
@@ -219,6 +223,7 @@ def create_app() -> FastAPI:
     app.include_router(mtproxy_router)
     app.include_router(panel_router)
     app.include_router(transports_router)
+    app.include_router(aether_router)
 
     return app
 

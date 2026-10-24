@@ -13,6 +13,7 @@ from app import state
 from app.config import settings
 from app.vless import parse_vless_header
 from app.services.traffic import add_to_buffer
+from app.services.upstream import open_upstream
 
 router = APIRouter()
 RELAY_BUF = 512 * 1024
@@ -228,7 +229,7 @@ async def websocket_tunnel(websocket: WebSocket, uuid: str):
             state.stats["upload_bytes"] += p_size
             await add_usage(uuid, p_size)
 
-        reader, writer = await asyncio.wait_for(asyncio.open_connection(address, port), timeout=10.0)
+        reader, writer = await open_upstream(address, port)
         try:
             sock = writer.get_extra_info("socket")
             if sock:
@@ -383,7 +384,7 @@ async def xhttp_upload(request: Request, uuid: str, session_id: str):
                 state.stats["total_requests"] += 1
 
                 try:
-                    reader, writer = await asyncio.wait_for(asyncio.open_connection(address, port), timeout=10.0)
+                    reader, writer = await open_upstream(address, port)
                 except Exception:
                     async with state.connections_lock:
                         state.connections.pop(conn_id, None)
@@ -494,7 +495,7 @@ async def xhttp_stream_one(request: Request, uuid: str):
                     state.stats["total_requests"] += 1
 
                     try:
-                        reader_box[0], writer = await asyncio.wait_for(asyncio.open_connection(address, port), timeout=10.0)
+                        reader_box[0], writer = await open_upstream(address, port)
                     except Exception:
                         async with state.connections_lock:
                             state.connections.pop(conn_id, None)
@@ -690,7 +691,7 @@ async def http_tunnel(request: Request, uuid: str):
                     state.stats["total_requests"] += 1
 
                     try:
-                        reader, writer = await asyncio.wait_for(asyncio.open_connection(address, port), timeout=10.0)
+                        reader, writer = await open_upstream(address, port)
                     except Exception:
                         async with state.connections_lock:
                             state.connections.pop(conn_id, None)

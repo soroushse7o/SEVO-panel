@@ -254,6 +254,7 @@ textarea.fi{resize:vertical;min-height:90px;}
           <button class="nav-link" data-page="addresses"><svg class="ic"><use href="#ic-link"/></svg> <span data-en="Clean IP" data-fa="آی‌پی تمیز">Clean IP</span></button>
           <button class="nav-link" data-page="logs"><svg class="ic"><use href="#ic-logs"/></svg> <span data-en="Logs" data-fa="لاگ‌ها">Logs</span></button>
           <button class="nav-link" data-page="telegram"><svg class="ic"><use href="#ic-telegram"/></svg> <span data-en="Telegram" data-fa="تلگرام">Telegram</span></button>
+          <button class="nav-link" data-page="aether"><svg class="ic"><use href="#ic-bolt"/></svg> <span data-en="Aether" data-fa="Aether">Aether</span></button>
           <button class="nav-link" data-page="mtproxy"><svg class="ic"><use href="#ic-bolt"/></svg> <span data-en="MTProxy" data-fa="ام‌تی پراکسی">MTProxy</span></button>
           <button class="nav-link" data-page="settings"><svg class="ic"><use href="#ic-settings"/></svg> <span data-en="Settings" data-fa="تنظیمات">Settings</span></button>
         </nav>
@@ -418,6 +419,74 @@ example.com"></textarea></div>
         </div>
       </div>
     </section>
+    <section class="page" id="page-aether">
+      <div class="page-header">
+        <div>
+          <div class="page-title" data-en="Aether Tunnel" data-fa="تونل Aether">Aether Tunnel</div>
+          <div class="page-sub" data-en="Cloudflare tunnel that can serve as the exit for all panel users" data-fa="تونل کلودفلر به‌عنوان خروجی کاربران پنل">Cloudflare tunnel that can serve as the exit for all panel users</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-sm" onclick="loadAether()"><svg class="ic"><use href="#ic-refresh"/></svg> <span data-en="Refresh" data-fa="بازخوانی">Refresh</span></button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:1.1rem;font-weight:700;"><span data-en="Status" data-fa="وضعیت">Status</span>: <span id="ae-phase">—</span></div>
+          <div id="ae-out" style="font-size:.85rem;"></div>
+        </div>
+        <div id="ae-info" style="font-size:.85rem;color:var(--text2);margin-top:8px;line-height:1.8;direction:ltr;text-align:left;"></div>
+        <div id="ae-err" style="display:none;margin-top:8px;color:var(--red);font-size:.85rem;direction:ltr;text-align:left;"></div>
+        <div id="ae-nobin" style="display:none;margin-top:8px;color:var(--yellow);font-size:.85rem;" data-en="Aether binary not found. Click Install to download the pinned release." data-fa="فایل اجرایی Aether پیدا نشد. روی Install بزنید.">Aether binary not found. Click Install to download the pinned release.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+          <button class="btn btn-primary btn-sm" onclick="aeStart()" data-en="Start" data-fa="شروع">Start</button>
+          <button class="btn btn-outline btn-sm" onclick="aeRestart()" data-en="Restart" data-fa="ریستارت">Restart</button>
+          <button class="btn btn-danger btn-sm" onclick="aeStop()" data-en="Stop" data-fa="توقف">Stop</button>
+          <button class="btn btn-outline btn-sm" onclick="aeInstall()" data-en="Install" data-fa="نصب">Install</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:10px;" data-en="Tunnel options" data-fa="تنظیمات تونل">Tunnel options</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+          <div class="fg"><label class="fl">Protocol</label><select class="fi" id="ae-protocol"></select></div>
+          <div class="fg"><label class="fl">Transport</label><select class="fi" id="ae-transport"></select></div>
+          <div class="fg"><label class="fl">Scan</label><select class="fi" id="ae-scan"></select></div>
+          <div class="fg"><label class="fl">IP</label><select class="fi" id="ae-ip"></select></div>
+          <div class="fg"><label class="fl">Noize</label><select class="fi" id="ae-noize"></select></div>
+          <div class="fg"><label class="fl">Port</label><input class="fi" type="number" id="ae-port" min="1024" max="65534" value="1819"></div>
+        </div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;">
+          <label><input type="checkbox" id="ae-httpproxy"> HTTP proxy (port+1)</label>
+          <label><input type="checkbox" id="ae-quick" checked> Quick reconnect</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:10px;" data-en="Outbound for panel users" data-fa="خروجی کاربران پنل">Outbound for panel users</div>
+        <div class="fg"><label class="fl" data-en="Exit mode" data-fa="حالت خروج">Exit mode</label>
+          <select class="fi" id="ae-mode">
+            <option value="direct">direct — connect from this server (default)</option>
+            <option value="auto">auto — use Aether while connected, else direct</option>
+            <option value="aether">aether — always via Aether (fail-closed)</option>
+          </select>
+        </div>
+        <div id="ae-mode-note" style="font-size:.8rem;color:var(--text3);margin-bottom:10px;"></div>
+        <label style="display:block;margin-bottom:12px;"><input type="checkbox" id="ae-auto"> <span data-en="Start the tunnel automatically after every restart" data-fa="شروع خودکار تونل پس از هر ری‌استارت">Start the tunnel automatically after every restart</span></label>
+        <button class="btn btn-primary btn-sm" onclick="aeSaveSettings()" data-en="Save" data-fa="ذخیره">Save</button>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:6px;">Watchdog</div>
+        <div id="ae-wd" style="font-size:.85rem;color:var(--text2);direction:ltr;text-align:left;"></div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:6px;" data-en="Tunnel log" data-fa="لاگ تونل">Tunnel log</div>
+        <pre id="ae-logs" style="max-height:280px;overflow:auto;font-size:.74rem;line-height:1.5;white-space:pre-wrap;word-break:break-all;direction:ltr;text-align:left;margin:0;"></pre>
+      </div>
+    </section>
+
     <section class="page" id="page-telegram">
       <div class="page-header"><div class="page-title" data-en="Telegram Bot" data-fa="ربات تلگرام">Telegram Bot</div></div>
       <div class="card">
@@ -428,6 +497,7 @@ example.com"></textarea></div>
             <label><input type="checkbox" value="quota_90" class="tg-event"> <span data-en="Quota 90%" data-fa="کوتا ۹۰٪">Quota 90%</span></label>
             <label><input type="checkbox" value="login" class="tg-event"> <span data-en="Login" data-fa="ورود">Login</span></label>
             <label><input type="checkbox" value="expiry" class="tg-event"> <span data-en="Expiry" data-fa="انقضا">Expiry</span></label>
+            <label><input type="checkbox" value="tunnel_down" class="tg-event"> <span data-en="Tunnel down" data-fa="قطع تونل">Tunnel down</span></label>
             <label><input type="checkbox" value="error" class="tg-event"> <span data-en="Error" data-fa="خطا">Error</span></label>
           </div>
         </div>
@@ -553,6 +623,7 @@ example.com"></textarea></div>
       <div class="nav-item" data-page="addresses" onclick="switchPage('addresses')"><span class="nav-icon"><svg class="ic"><use href="#ic-link"/></svg></span><span data-en="Clean IP" data-fa="آی‌پی تمیز">Clean IP</span></div>
       <div class="nav-item" data-page="logs" onclick="switchPage('logs')"><span class="nav-icon"><svg class="ic"><use href="#ic-logs"/></svg></span><span data-en="Logs" data-fa="لاگ">Logs</span></div>
       <div class="nav-item" data-page="telegram" onclick="switchPage('telegram')"><span class="nav-icon"><svg class="ic"><use href="#ic-telegram"/></svg></span><span data-en="Bot" data-fa="ربات">Bot</span></div>
+      <div class="nav-item" data-page="aether" onclick="switchPage('aether')"><span class="nav-icon"><svg class="ic"><use href="#ic-bolt"/></svg></span><span data-en="Aether" data-fa="Aether">Aether</span></div>
       <div class="nav-item" data-page="mtproxy" onclick="switchPage('mtproxy')"><span class="nav-icon"><svg class="ic"><use href="#ic-bolt"/></svg></span><span data-en="MTProxy" data-fa="پراکسی">MTProxy</span></div>
       <div class="nav-item" data-page="settings" onclick="switchPage('settings')"><span class="nav-icon"><svg class="ic"><use href="#ic-settings"/></svg></span><span data-en="Settings" data-fa="تنظیمات">Settings</span></div>
     </div>
@@ -772,7 +843,7 @@ example.com"></textarea></div>
 
 <script>
 const $=s=>document.querySelector(s),$m=id=>document.getElementById(id);
-function esc(s){return String(s).replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"').replace(/'/g,'&#39;');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function svgic(name){return '<svg class="ic" style="width:1em;height:1em;vertical-align:-0.15em"><use href="#ic-'+name+'"/></svg>';}
 const i18n = {
   en:{
@@ -1087,7 +1158,7 @@ function startPanelClock() {
 async function doLogin(){const u=$m('login-user').value.trim();const pw=$m('login-pw').value;$m('login-err').style.display='none';try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:pw})});if(r.ok){$m('login-pw').value='';showDashboard();}else $m('login-err').style.display='block';}catch{console.error('Login error');$m('login-err').style.display='block';}}
 async function doLogout(){await fetch('/api/logout',{method:'POST'});showLogin();}
 document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.addEventListener('click',()=>{switchPage(el.dataset.page);document.getElementById('mainNav').classList.remove('open');}));
-function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$m('page-'+id).classList.add('active');if(id==='mtproxy')loadMtproxy();if(id==='outbounds')loadOutbounds();document.querySelectorAll('.nav-link').forEach(n=>n.classList.toggle('active',n.dataset.page===id));document.querySelectorAll('.mobile-nav .nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===id));}
+function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$m('page-'+id).classList.add('active');if(id==='mtproxy')loadMtproxy();if(id==='outbounds')loadOutbounds();if(id==='aether')startAether();else stopAetherPoll();document.querySelectorAll('.nav-link').forEach(n=>n.classList.toggle('active',n.dataset.page===id));document.querySelectorAll('.mobile-nav .nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===id));}
 document.getElementById('hamburger-btn')?.addEventListener('click',function(e){e.stopPropagation();document.getElementById('mainNav').classList.toggle('open');});
 function toast(msg,err=false){const t=$m('toast');t.textContent=msg;t.className='toast'+(err?' err':'')+' show';clearTimeout(t._hide);t._hide=setTimeout(()=>t.classList.remove('show'),3000);}
 function fmtB(b){if(!b||b===0)return'0 B';return b>=1073741824?(b/1073741824).toFixed(2)+' GB':b>=1048576?(b/1048576).toFixed(2)+' MB':(b/1024).toFixed(1)+' KB';}
@@ -1097,6 +1168,21 @@ function fmtConns(uuid){const list=liveConns[uuid]||[];if(!list.length)return '<
 function fillOutboundForm(cfg){if(!cfg)return;const set=(id,v)=>{const e=$m(id);if(e&&v!==undefined)e.value=v;};set('ob_dfp',cfg.ob_default_fp||'chrome');set('ob_dsni',cfg.ob_default_sni||'');set('ob_dhost',cfg.ob_default_host||'');set('ob_dalpn',cfg.ob_default_alpn||'http/1.1');set('ob_ws_path',cfg.ob_ws_path||'/ws/{uuid}');set('ob_xhttp_path',cfg.ob_xhttp_path||'/xhttp1/{uuid}');set('ob_http_path',cfg.ob_http_path||'/http/{uuid}');}
 async function loadOutbounds(){try{const [t,r]=await Promise.all([fetch('/api/transports'),fetch('/api/outbound-config')]);if(!t.ok)return;const d=await t.json();const cfg=await r.json();const grid=$m('transport-grid');const icons={ws:'🌐',xhttp:'⚡',http:'📡',tcp:'🔌'};const paths={ws:cfg.ob_ws_path||'/ws/{uuid}',xhttp:cfg.ob_xhttp_path||'/xhttp1/{uuid}',http:cfg.ob_http_path||'/http/{uuid}'};let html='';for(const [key,tr] of Object.entries(d)){const status=tr.enabled?'<span style="color:var(--ok)">● Active</span>':'<span style="color:var(--text3)">● Off</span>';const port=tr.port?(':'+tr.port):'';const host=tr.host?(' → '+tr.host+port):'';const pathVal=paths[key]||tr.path_template||'-';html+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:1.1rem;font-weight:700;">${icons[key]||'•'} ${tr.name}</div><div>${status}</div></div><div style="font-size:0.82rem;color:var(--text3);margin:8px 0;">${tr.description||''}</div><div style="font-size:0.85rem;margin-bottom:6px;"><div>Security: <code>${tr.security}</code></div><div>Path: <code>${pathVal}</code></div><div>Endpoint: <code>${tr.port?'port '+tr.port:''}${host}</code></div>${tr.mode?`<div>Mode: <code>${tr.mode}</code></div>`:''}</div></div>`;}grid.innerHTML=html;fillOutboundForm(cfg);}catch(e){console.error('loadOutbounds',e);}}
 async function saveOutboundConfig(){const body={ob_default_fp:$m('ob_dfp').value,ob_default_sni:$m('ob_dsni').value.trim(),ob_default_host:$m('ob_dhost').value.trim(),ob_default_alpn:$m('ob_dalpn').value.trim(),ob_ws_path:$m('ob_ws_path').value.trim()||'/ws/{uuid}',ob_xhttp_path:$m('ob_xhttp_path').value.trim()||'/xhttp1/{uuid}',ob_http_path:$m('ob_http_path').value.trim()||'/http/{uuid}'};try{const r=await fetch('/api/outbound-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(r.ok)toast('Outbound config saved');else toast('Error',true);}catch{toast('Error',true);}}
+let aeTimer=null,aeFilled=false;
+function aeEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+async function aeApi(path,body){try{const r=await fetch('/api/aether/'+path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});if(r.status===401){showLogin();return null;}let d={};try{d=await r.json();}catch(e){}if(!r.ok||d.ok===false){toast(d.error||('Error '+r.status),true);return null;}return d;}catch(e){toast('Error',true);return null;}}
+function aeFmtSec(s){if(s==null)return '—';s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h>0?h+'h '+m+'m':m>0?m+'m '+(s%60)+'s':s+'s';}
+function aeFillForm(s){const sch=s.options_schema||{};const fill=(id,list)=>{const el=$m(id);if(!el||el.options.length)return;(list||[]).forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;el.appendChild(o);});};fill('ae-protocol',sch.protocol);fill('ae-transport',sch.transport);fill('ae-scan',sch.scan);fill('ae-ip',sch.ip);fill('ae-noize',sch.noize);const o=s.saved_options||s.options||s.default_options||{};const set=(id,v)=>{const e=$m(id);if(e&&v!==undefined)e.value=v;};set('ae-protocol',o.protocol);set('ae-transport',o.transport);set('ae-scan',o.scan);set('ae-ip',o.ip);set('ae-noize',o.noize);set('ae-port',o.port);$m('ae-httpproxy').checked=!!o.http_proxy;$m('ae-quick').checked=o.quick_reconnect!==false;$m('ae-mode').value=s.outbound_mode||'direct';$m('ae-auto').checked=!!s.auto_start;aeFilled=true;}
+function aeReadForm(){return{protocol:$m('ae-protocol').value,transport:$m('ae-transport').value,scan:$m('ae-scan').value,ip:$m('ae-ip').value,noize:$m('ae-noize').value,port:parseInt($m('ae-port').value,10),http_proxy:$m('ae-httpproxy').checked,quick_reconnect:$m('ae-quick').checked};}
+function aeRender(s){if(!aeFilled)aeFillForm(s);const col={connected:'var(--green)',error:'var(--red)',stopped:'var(--text3)'}[s.phase]||'var(--yellow)';$m('ae-phase').innerHTML='<span style="color:'+col+'">● '+aeEsc(s.phase)+'</span>';const act=s.outbound_active;$m('ae-out').innerHTML='Outbound: <b>'+aeEsc(s.outbound_mode)+'</b> '+(act?'<span style="color:var(--green)">(users exit via Aether)</span>':'<span style="color:var(--text3)">(users exit directly)</span>');const ex=s.exit;let info=[];if(s.running&&s.options)info.push('SOCKS5 127.0.0.1:'+s.options.port+' · '+s.options.protocol+'/'+s.options.transport+' · scan '+s.options.scan);if(s.gateway)info.push('Gateway: '+aeEsc(s.gateway));if(ex)info.push('Exit: '+aeEsc(ex.ip)+' · '+aeEsc(ex.country)+' via '+aeEsc(ex.colo)+' · '+ex.latency_ms+' ms'+(ex.warp?' · warp '+aeEsc(ex.warp):''));if(s.uptime_sec!=null)info.push('Connected for '+aeFmtSec(s.uptime_sec));if(s.pid)info.push('PID '+s.pid);$m('ae-info').innerHTML=info.join('<br>');const er=$m('ae-err');er.style.display=s.last_error&&s.phase!=='connected'?'block':'none';er.textContent=s.last_error||'';$m('ae-nobin').style.display=s.binary?'none':'block';const note={direct:'Panel users connect from this server\'s own IP (default behaviour).',auto:'Users exit via Aether while it is connected; otherwise they connect directly (the server IP may be exposed during outages).',aether:'Fail-closed: if the tunnel is down, user connections are refused instead of leaking the server IP.'};$m('ae-mode-note').textContent=note[$m('ae-mode').value]||'';const w=s.watchdog||{};$m('ae-wd').innerHTML=(w.enabled?'enabled':'disabled')+' · restarts '+(w.restarts||0)+' · failed checks '+(w.consecutive_failures||0)+'/'+(w.max_failures||0)+(w.last_check_ok===true?' · last check OK':w.last_check_ok===false?' · last check FAILED':'')+(w.next_restart_in_sec!=null?' · restart in '+w.next_restart_in_sec+'s':'')+(w.last_reason?'<br>Last reason: '+aeEsc(w.last_reason):'')+(s.last_good?'<br>Known-good preset saved':'');const lg=$m('ae-logs');const atBottom=lg.scrollTop+lg.clientHeight>=lg.scrollHeight-24;const lc={error:'var(--red)',warn:'var(--yellow)'};lg.innerHTML=(s.logs||[]).map(l=>'<span style="color:'+(lc[l.level]||'var(--text2)')+'">'+aeEsc(l.text)+'</span>').join('\n');if(atBottom)lg.scrollTop=lg.scrollHeight;}
+async function loadAether(){const s=await aeApi('status');if(s)aeRender(s);}
+function startAether(){aeFilled=false;loadAether();stopAetherPoll();aeTimer=setInterval(loadAether,3000);}
+function stopAetherPoll(){if(aeTimer){clearInterval(aeTimer);aeTimer=null;}}
+async function aeStart(){const d=await aeApi('start',aeReadForm());if(d){toast('Starting…');loadAether();}}
+async function aeRestart(){const d=await aeApi('restart',aeReadForm());if(d){toast('Restarting…');loadAether();}}
+async function aeStop(){const d=await aeApi('stop',{});if(d){toast('Stopped');loadAether();}}
+async function aeInstall(){toast('Downloading Aether…');const d=await aeApi('install',{});if(d){toast('Installed '+(d.version||''));loadAether();}}
+async function aeSaveSettings(){const d=await aeApi('settings',{outbound_mode:$m('ae-mode').value,auto_start:$m('ae-auto').checked});if(d){toast('Saved');loadAether();}}
 function setFilter(f,el){cf=f;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');filterLinks();}
 function filterLinks(){const q=($m('srch')?.value||'').toLowerCase();let r=allLinks;if(cf==='active')r=r.filter(l=>l.active);else if(cf==='off')r=r.filter(l=>!l.active);if(q)r=r.filter(l=>l.label.toLowerCase().includes(q)||l.uuid.toLowerCase().includes(q));renderLinks(r);}
 function renderLinks(links){

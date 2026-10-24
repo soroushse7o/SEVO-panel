@@ -44,3 +44,27 @@ RAW_TCP_ENABLED = "true"
 RAW_TCP_PORT = "8080"
 RAW_TCP_PUBLIC_HOST = ""
 RAW_TCP_PUBLIC_PORT = ""
+
+# ---------------------------------------------------------------------------
+# Aether tunnel (merged from ASiRi-web-panel) -- optional exit for ALL users
+# ---------------------------------------------------------------------------
+# The tunnel itself is managed from the panel's "Aether" tab (start/stop,
+# protocol, scan mode, watchdog). These variables are optional:
+#
+# Where users' traffic leaves the server:
+#   direct (default) | auto (Aether while connected, else direct) |
+#   aether (always via Aether; connections are REFUSED while it is down)
+# When set, this overrides the choice saved in the panel.
+# AETHER_OUTBOUND = "direct"
+# Start the tunnel automatically after every restart (needs the binary).
+# AETHER_AUTO_START = "1"
+# Binary location (the Dockerfile installs it at /usr/local/bin/aether) and
+# the pinned release used by the in-panel "Install" button.
+# AETHER_BIN = "/usr/local/bin/aether"
+# AETHER_VERSION = "v1.5.0"
+# Watchdog tuning (seconds unless noted); defaults shown.
+# WATCHDOG_INTERVAL_SEC = "30"
+# WATCHDOG_MAX_FAILURES = "3"
+# WATCHDOG_STUCK_SEC = "300"
+# WATCHDOG_BACKOFF_BASE_SEC = "2"
+# WATCHDOG_BACKOFF_MAX_SEC = "300"

@@ -31,6 +31,7 @@ from app import state
 from app.config import settings
 from app.vless import parse_vless_header
 from app.services.traffic import add_to_buffer
+from app.services.upstream import open_upstream
 
 logger = logging.getLogger("SE7OSNA.raw_tcp")
 
@@ -135,9 +136,7 @@ async def _handle_client(client_reader, client_writer):
                 pass
 
         try:
-            backend_reader, backend_writer = await asyncio.wait_for(
-                asyncio.open_connection(address, port), timeout=10.0
-            )
+            backend_reader, backend_writer = await open_upstream(address, port)
         except Exception:
             return
 

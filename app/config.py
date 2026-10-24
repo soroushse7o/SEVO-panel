@@ -49,6 +49,13 @@ class Config:
     raw_tcp_public_host: str = os.environ.get("RAW_TCP_PUBLIC_HOST", "")
     raw_tcp_public_port: str = os.environ.get("RAW_TCP_PUBLIC_PORT", "")
 
+    # Aether (Cloudflare tunnel) outbound -- see app/services/aether.py
+    # AETHER_OUTBOUND: direct (default) | aether (fail-closed) | auto. When set, it overrides the panel setting.
+    aether_bin: str = os.environ.get("AETHER_BIN", "")
+    aether_dir: str = os.environ.get("AETHER_DIR", "")
+    aether_version: str = os.environ.get("AETHER_VERSION", "")
+    aether_outbound: str = os.environ.get("AETHER_OUTBOUND", "")
+
     # Domain (auto-detected from platform env vars)
     @property
     def domain(self) -> str:
