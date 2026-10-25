@@ -40,7 +40,3 @@ SE7O-SNA پایه است. هر اتصال کاربران پنل (WS) حالا ب
 `python test_upstream.py` — بدون وب‌استک و اینترنت: SOCKS5 جعلی (دامنه/IPv4/IPv6/رد)، سه حالت خروج،
 پارس لاگ و آرگومان‌ها، و چرخه‌ی کامل با باینری جعلی (start → connected → kill → ری‌استارت watchdog → stop).
 `test_endpoints_defined.py` حالا مسیرهای `/api/aether/*` را هم چک می‌کند (نیاز به نصب requirements).
-
-## اصلاح جانبی
-تابع `esc()` در `panel_html.py` عملاً هیچ‌چیز escape نمی‌کرد (`&`→`&`، `<`→`<`)؛ برچسب‌های لینک بدون
-escape در HTML می‌نشستند (XSS). اصلاح شد.
